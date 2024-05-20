@@ -1,0 +1,19 @@
+{
+  "name": "bogie",
+  "version": "0.0.1",
+  "description": "A system for tracking and analyzing transit data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SeannyPhoenix/bogie.git"
+  },
+  "author": "Seanny Phoenix",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/SeannyPhoenix/bogie/issues"
+  },
+  "homepage": "https://github.com/SeannyPhoenix/bogie#readme"
+}
