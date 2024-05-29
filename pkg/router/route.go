@@ -17,7 +17,9 @@ const (
 	OPTIONS Method = "OPTIONS"
 )
 
-type HandlerFunc func(context.Context, map[string]string, events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
+type Params map[string]string
+
+type HandlerFunc func(context.Context, Params, events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
 
 type Route struct {
 	Path         string
@@ -35,4 +37,37 @@ func NewRoute(path string, method Method, handler HandlerFunc) Route {
 		Handler:      handler,
 		Signature:    string(method) + path,
 	}
+}
+
+func (r *Route) Match(path string, method Method) (HandlerFunc, bool) {
+	if r.Method != method {
+		return nil, false
+	}
+
+	pathElements := strings.Split(path, "/")
+
+	if len(pathElements) != len(r.PathElements) {
+		return nil, false
+	}
+
+	for i, element := range r.PathElements {
+		if element != pathElements[i] && !strings.HasPrefix(element, ":") {
+			return nil, false
+		}
+	}
+
+	return r.Handler, true
+}
+
+func (r *Route) Params(path string) Params {
+	pathElements := strings.Split(path, "/")
+	params := Params{}
+
+	for i, element := range r.PathElements {
+		if strings.HasPrefix(element, ":") {
+			params[element[1:]] = pathElements[i]
+		}
+	}
+
+	return params
 }

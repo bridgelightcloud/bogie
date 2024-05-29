@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func mockHandler(ctx context.Context, params map[string]string, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+func mockHandler(ctx context.Context, params Params, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	return events.APIGatewayV2HTTPResponse{}, nil
 }
 
@@ -25,4 +25,122 @@ func TestNewRoute(t *testing.T) {
 	assert.Equal(method, route.Method)
 	assert.NotNil(route.Handler)
 	assert.Equal(string(method)+path, route.Signature)
+}
+
+func TestMatch(t *testing.T) {
+	t.Parallel()
+
+	tt := []struct {
+		name          string
+		routePath     string
+		routeMethod   Method
+		requestPath   string
+		requestMethod Method
+		expected      bool
+	}{
+		{
+			name:          "Match",
+			routePath:     "/events",
+			routeMethod:   GET,
+			requestPath:   "/events",
+			requestMethod: GET,
+			expected:      true,
+		},
+		{
+			name:          "MatchWithParams",
+			routePath:     "/events/:id",
+			routeMethod:   GET,
+			requestPath:   "/events/1",
+			requestMethod: GET,
+			expected:      true,
+		},
+		{
+			name:          "NoMatchWrongMethod",
+			routePath:     "/events",
+			routeMethod:   GET,
+			requestPath:   "/events",
+			requestMethod: POST,
+			expected:      false,
+		},
+		{
+			name:          "NoMatchDifferentPath",
+			routePath:     "/events",
+			routeMethod:   GET,
+			requestPath:   "/events/1",
+			requestMethod: GET,
+			expected:      false,
+		},
+		{
+			name:          "NoMatchDifferentPath",
+			routePath:     "/events/abc",
+			routeMethod:   GET,
+			requestPath:   "/events/1",
+			requestMethod: GET,
+			expected:      false,
+		},
+	}
+
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+			route := NewRoute(tc.routePath, tc.routeMethod, mockHandler)
+
+			handler, match := route.Match(tc.requestPath, tc.requestMethod)
+			assert.Equal(tc.expected, match)
+			if tc.expected {
+				assert.NotNil(handler)
+			} else {
+				assert.Nil(handler)
+			}
+		})
+	}
+}
+
+func TestParams(t *testing.T) {
+	t.Parallel()
+	
+	tt := []struct {
+		name          string
+		routePath     string
+		requestPath   string
+		expected      Params
+	}{
+		{
+			name:     "NoParams",
+			routePath: "/events",
+			requestPath: "/events",
+			expected: Params{},
+		},
+		{
+			name:     "SingleParam",
+			routePath: "/events/:id",
+			requestPath: "/events/1",
+			expected: Params{
+				"id": "1",
+			},
+		},
+		{
+			name:     "MultipleParams",
+			routePath: "/events/:id/:name",
+			requestPath: "/events/1/john",
+			expected: Params{
+				"id": "1",
+				"name": "john",
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+			route := NewRoute(tc.routePath, GET, mockHandler)
+
+			params := route.Params(tc.requestPath)
+			assert.Equal(tc.expected, params)
+		})
+	}
 }
