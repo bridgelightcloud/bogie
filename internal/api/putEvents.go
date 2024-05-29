@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/seannyphoenix/bogie/pkg/event"
+	"github.com/seannyphoenix/bogie/internal/event"
 )
 
 type PutEventsRequest struct {

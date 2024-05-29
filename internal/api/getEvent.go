@@ -5,7 +5,7 @@ import (
 
 	lambdaEvents "github.com/aws/aws-lambda-go/events"
 	"github.com/google/uuid"
-	"github.com/seannyphoenix/bogie/pkg/event"
+	"github.com/seannyphoenix/bogie/internal/event"
 )
 
 func getEvent(id string) lambdaEvents.LambdaFunctionURLResponse {

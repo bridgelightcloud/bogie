@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	lambdaEvents "github.com/aws/aws-lambda-go/events"
-	"github.com/seannyphoenix/bogie/pkg/event"
+	"github.com/seannyphoenix/bogie/internal/event"
 )
 
 func getEvents() lambdaEvents.LambdaFunctionURLResponse {

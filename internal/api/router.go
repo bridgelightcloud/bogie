@@ -8,7 +8,8 @@ import (
 )
 
 func Route(event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLResponse, error) {
-	pth := event.RequestContext.HTTP.Path
+	pth := event.RawPath
+	path, id := path.Split(pth)
 	method := event.RequestContext.HTTP.Method
 
 	switch {
@@ -16,11 +17,8 @@ func Route(event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLRespo
 		return putEvents(PutEventsRequest{Body: event.Body}), nil
 	case pth == "/events" && method == "GET":
 		return getEvents(), nil
-	default:
-		path, id := path.Split(pth)
-		if path == "/events/" && method == "GET" {
-			return getEvent(id), nil
-		}
+	case path == "/events/" && method == "GET":
+		return getEvent(id), nil
 	}
 
 	return events.LambdaFunctionURLResponse{
