@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func mockHandler(ctx context.Context, params Params, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+func mockHandler(ctx context.Context, params PathParams, event events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	return events.APIGatewayV2HTTPResponse{}, nil
 }
 
@@ -25,6 +25,16 @@ func TestNewRoute(t *testing.T) {
 	assert.Equal(method, route.Method)
 	assert.NotNil(route.Handler)
 	assert.Equal(string(method)+path, route.Signature)
+}
+
+func TestRouteMustStartWithSlash(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+
+	assert.Panics(func() {
+		NewRoute("events", GET, mockHandler)
+	})
 }
 
 func TestMatch(t *testing.T) {
@@ -87,7 +97,7 @@ func TestMatch(t *testing.T) {
 			assert := assert.New(t)
 			route := NewRoute(tc.routePath, tc.routeMethod, mockHandler)
 
-			handler, match := route.Match(tc.requestPath, tc.requestMethod)
+			handler, match := route.match(tc.requestPath, tc.requestMethod)
 			assert.Equal(tc.expected, match)
 			if tc.expected {
 				assert.NotNil(handler)
@@ -100,33 +110,33 @@ func TestMatch(t *testing.T) {
 
 func TestParams(t *testing.T) {
 	t.Parallel()
-	
+
 	tt := []struct {
-		name          string
-		routePath     string
-		requestPath   string
-		expected      Params
+		name        string
+		routePath   string
+		requestPath string
+		expected    PathParams
 	}{
 		{
-			name:     "NoParams",
-			routePath: "/events",
+			name:        "NoParams",
+			routePath:   "/events",
 			requestPath: "/events",
-			expected: Params{},
+			expected:    PathParams{},
 		},
 		{
-			name:     "SingleParam",
-			routePath: "/events/:id",
+			name:        "SingleParam",
+			routePath:   "/events/:id",
 			requestPath: "/events/1",
-			expected: Params{
+			expected: PathParams{
 				"id": "1",
 			},
 		},
 		{
-			name:     "MultipleParams",
-			routePath: "/events/:id/:name",
+			name:        "MultipleParams",
+			routePath:   "/events/:id/:name",
 			requestPath: "/events/1/john",
-			expected: Params{
-				"id": "1",
+			expected: PathParams{
+				"id":   "1",
 				"name": "john",
 			},
 		},
@@ -139,7 +149,7 @@ func TestParams(t *testing.T) {
 			assert := assert.New(t)
 			route := NewRoute(tc.routePath, GET, mockHandler)
 
-			params := route.Params(tc.requestPath)
+			params := route.params(tc.requestPath)
 			assert.Equal(tc.expected, params)
 		})
 	}

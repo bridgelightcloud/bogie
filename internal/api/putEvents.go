@@ -12,15 +12,15 @@ type PutEventsRequest struct {
 	Body string
 }
 
-func putEvents(ev PutEventsRequest) events.LambdaFunctionURLResponse {
+func putEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 	var evs []event.Event
-	body := ev.Body
+	body := r.Body
 
 	err := json.Unmarshal([]byte(body), &evs)
 
 	if err != nil {
 		return events.LambdaFunctionURLResponse{
-			StatusCode: 500,
+			StatusCode: 400,
 			Body:       "Error unmarshalling events",
 		}
 	}

@@ -15,31 +15,54 @@ const (
 	PUT     Method = "PUT"
 	DELETE  Method = "DELETE"
 	OPTIONS Method = "OPTIONS"
+	ANY     Method = "*"
 )
 
-type Params map[string]string
+type PathParams map[string]string
 
-type HandlerFunc func(context.Context, Params, events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
+type HandlerFunc func(context.Context, PathParams, events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
 
 type Route struct {
-	Path         string
-	PathElements []string
-	Method       Method
-	Handler      HandlerFunc
-	Signature    string
+	ParamCount        int
+	Path              string
+	PathElements      []string
+	PathLength        int
+	Method            Method
+	Handler           HandlerFunc
+	Signature         string
+	SignatureElements []string
 }
 
 func NewRoute(path string, method Method, handler HandlerFunc) Route {
+	if !strings.HasPrefix(path, "/") {
+		panic("Path must start with /")
+	}
+
+	paramCount := 0
+	pathElements := strings.Split(path, "/")
+	signatureElements := []string{}
+	for _, element := range pathElements {
+		if strings.HasPrefix(element, ":") {
+			signatureElements = append(signatureElements, "*")
+			paramCount++
+		} else {
+			signatureElements = append(signatureElements, element)
+		}
+	}
+
 	return Route{
-		Path:         path,
-		PathElements: strings.Split(path, "/"),
-		Method:       method,
-		Handler:      handler,
-		Signature:    string(method) + path,
+		ParamCount:        paramCount,
+		Path:              path,
+		PathElements:      pathElements,
+		PathLength:        len(pathElements),
+		Method:            method,
+		Handler:           handler,
+		Signature:         string(method) + strings.Join(signatureElements, "/"),
+		SignatureElements: signatureElements,
 	}
 }
 
-func (r *Route) Match(path string, method Method) (HandlerFunc, bool) {
+func (r *Route) match(path string, method Method) (HandlerFunc, bool) {
 	if r.Method != method {
 		return nil, false
 	}
@@ -59,9 +82,9 @@ func (r *Route) Match(path string, method Method) (HandlerFunc, bool) {
 	return r.Handler, true
 }
 
-func (r *Route) Params(path string) Params {
+func (r *Route) params(path string) PathParams {
 	pathElements := strings.Split(path, "/")
-	params := Params{}
+	params := PathParams{}
 
 	for i, element := range r.PathElements {
 		if strings.HasPrefix(element, ":") {
