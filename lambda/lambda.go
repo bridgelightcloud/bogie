@@ -6,5 +6,6 @@ import (
 )
 
 func main() {
+	api.Setup()
 	lambda.Start(api.Route)
 }
