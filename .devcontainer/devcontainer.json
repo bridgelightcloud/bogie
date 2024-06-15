@@ -8,5 +8,8 @@
 		"ghcr.io/devcontainers/features/go": {},
 		"ghcr.io/devcontainers-contrib/features/apt-packages": {"packages": "bash-completion"},
 		"ghcr.io/devcontainers-contrib/features/typescript": {}
+	},
+	"containerEnv": {
+		"AWS_PROFILE": "bogie"
 	}
 }

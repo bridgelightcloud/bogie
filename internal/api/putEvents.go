@@ -37,9 +37,9 @@ func putEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 		for _, ev := range chunk {
 			item, err := ev.MarshalDynamoDB()
 			if err != nil {
+				println("Error marshalling event: ", err.Error())
 				return events.LambdaFunctionURLResponse{
 					StatusCode: 500,
-					Body:       "Error marshalling event",
 				}
 			}
 			input.RequestItems[bogieTable] = append(input.RequestItems[bogieTable], types.WriteRequest{
@@ -51,9 +51,9 @@ func putEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 
 		_, err := dynamoDBClient.BatchWriteItem(context.Background(), &input)
 		if err != nil {
+			println("Error writing to DynamoDB: ", err.Error())
 			return events.LambdaFunctionURLResponse{
 				StatusCode: 500,
-				Body:       "Error writing to DynamoDB",
 			}
 		}
 	}
