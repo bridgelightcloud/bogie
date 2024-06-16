@@ -10,15 +10,15 @@ import (
 )
 
 type Event struct {
-	Id            uuid.UUID `json:"id"`
-	Type          string    `json:"type,omitempty"`
-	Carrier       string    `json:"carrier,omitempty"`
-	Line          string    `json:"line,omitempty"`
-	DepartureStop string    `json:"departureStop,omitempty"`
-	ArrivalStop   string    `json:"arrivalStop,omitempty"`
-	DepartureTime time.Time `json:"departureTime,omitempty"`
-	ArrivalTime   time.Time `json:"arrivalTime,omitempty"`
-	Notes         []string  `json:"notes,omitempty"`
+	Id            uuid.UUID  `json:"id"`
+	Type          string     `json:"type,omitempty"`
+	Carrier       string     `json:"carrier,omitempty"`
+	Line          string     `json:"line,omitempty"`
+	DepartureStop string     `json:"departureStop,omitempty"`
+	ArrivalStop   string     `json:"arrivalStop,omitempty"`
+	DepartureTime *time.Time `json:"departureTime,omitempty"`
+	ArrivalTime   *time.Time `json:"arrivalTime,omitempty"`
+	Notes         []string   `json:"notes,omitempty"`
 }
 
 var typeNameMap = map[string]uuid.UUID{
@@ -39,6 +39,8 @@ func GetExampleEvent(id uuid.UUID) Event {
 		id = uuid.New()
 	}
 
+	extime := time.Now().Truncate(time.Second)
+
 	return Event{
 		Id:            id,
 		Type:          "train",
@@ -46,8 +48,8 @@ func GetExampleEvent(id uuid.UUID) Event {
 		Line:          "Red",
 		DepartureStop: "Richmond",
 		ArrivalStop:   "Millbrae",
-		DepartureTime: time.Now().Truncate(time.Second),
-		ArrivalTime:   time.Now().Truncate(time.Second),
+		DepartureTime: &extime,
+		ArrivalTime:   &extime,
 	}
 }
 
@@ -120,8 +122,14 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 	e.Line = getString(data["l"])
 	e.DepartureStop = getString(data["ds"])
 	e.ArrivalStop = getString(data["as"])
-	e.DepartureTime = getTime(data["dt"])
-	e.ArrivalTime = getTime(data["at"])
+
+	if t := getTime(data["dt"]); !t.IsZero() {
+		e.DepartureTime = &t
+	}
+
+	if t := getTime(data["at"]); !t.IsZero() {
+		e.ArrivalTime = &t
+	}
 
 	return nil
 }
