@@ -14,7 +14,7 @@ func Route(event events.LambdaFunctionURLRequest) (events.LambdaFunctionURLRespo
 
 	switch {
 	case pth == "/events" && method == "POST":
-		return putEvents(PutEventsRequest{Body: event.Body}), nil
+		return writeEvents(PutEventsRequest{Body: event.Body}), nil
 	case pth == "/events" && method == "GET":
 		return getEvents(), nil
 	case path == "/events/" && method == "GET":

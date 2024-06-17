@@ -15,12 +15,11 @@ type PutEventsRequest struct {
 	Body string
 }
 
-func putEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
+func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 	var evs []event.Event
 	body := r.Body
 
 	err := json.Unmarshal([]byte(body), &evs)
-
 	if err != nil {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 400,

@@ -14,6 +14,9 @@ type Event struct {
 	Type          string     `json:"type,omitempty"`
 	Carrier       string     `json:"carrier,omitempty"`
 	Line          string     `json:"line,omitempty"`
+	UnitID        string     `json:"unitID,omitempty"`
+	UnitCount		 int        `json:"unitCount,omitempty"`
+	UnitPosition	 int        `json:"unitPosition,omitempty"`
 	DepartureStop string     `json:"departureStop,omitempty"`
 	ArrivalStop   string     `json:"arrivalStop,omitempty"`
 	DepartureTime *time.Time `json:"departureTime,omitempty"`
@@ -87,6 +90,10 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 		data["l"] = &dynamodb.AttributeValueMemberS{Value: e.Line}
 	}
 
+	if e.UnitID != "" {
+		data["u"] = &dynamodb.AttributeValueMemberS{Value: e.UnitID}
+	}
+
 	if e.DepartureStop != "" {
 		data["ds"] = &dynamodb.AttributeValueMemberS{Value: e.DepartureStop}
 	}
@@ -95,11 +102,11 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 		data["as"] = &dynamodb.AttributeValueMemberS{Value: e.ArrivalStop}
 	}
 
-	if !e.DepartureTime.IsZero() {
+	if e.DepartureTime != nil && !e.DepartureTime.IsZero() {
 		data["dt"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.DepartureTime.Unix(), 10)}
 	}
 
-	if !e.ArrivalTime.IsZero() {
+	if e.ArrivalTime != nil && !e.ArrivalTime.IsZero() {
 		data["at"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.ArrivalTime.Unix(), 10)}
 	}
 
@@ -120,8 +127,10 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 	e.Type = typeIDMap[getUUID(data["t"])]
 	e.Carrier = getString(data["c"])
 	e.Line = getString(data["l"])
+	e.UnitID = getString(data["u"])
 	e.DepartureStop = getString(data["ds"])
 	e.ArrivalStop = getString(data["as"])
+	e.Notes = getStringSlice(data["n"])
 
 	if t := getTime(data["dt"]); !t.IsZero() {
 		e.DepartureTime = &t
@@ -154,6 +163,17 @@ func getString(data dynamodb.AttributeValue) string {
 		return s.Value
 	}
 	return ""
+}
+
+func getStringSlice(data dynamodb.AttributeValue) []string {
+	if data == nil {
+		return nil
+	}
+
+	if ss, ok := data.(*dynamodb.AttributeValueMemberSS); ok {
+		return ss.Value
+	}
+	return nil
 }
 
 func getTime(data dynamodb.AttributeValue) time.Time {
