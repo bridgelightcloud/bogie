@@ -7,16 +7,21 @@ import (
 
 	dynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
+	"github.com/seannyphoenix/bogie/internal/documentType"
 )
 
 type Event struct {
 	Id            uuid.UUID  `json:"id"`
 	Type          string     `json:"type"`
+	CreatedAt     *time.Time `json:"createdAt"`
+	UpdatedAt     *time.Time `json:"updatedAt"`
+	User          uuid.UUID  `json:"user,omitempty"`
 	Carrier       string     `json:"carrier,omitempty"`
 	Line          string     `json:"line,omitempty"`
+	Trip          string     `json:"trip,omitempty"`
 	UnitID        string     `json:"unitID,omitempty"`
-	UnitCount		 int        `json:"unitCount,omitempty"`
-	UnitPosition	 int        `json:"unitPosition,omitempty"`
+	UnitCount     *int       `json:"unitCount,omitempty"`
+	UnitPosition  *int       `json:"unitPosition,omitempty"`
 	DepartureStop string     `json:"departureStop,omitempty"`
 	ArrivalStop   string     `json:"arrivalStop,omitempty"`
 	DepartureTime *time.Time `json:"departureTime,omitempty"`
@@ -24,36 +29,55 @@ type Event struct {
 	Notes         []string   `json:"notes,omitempty"`
 }
 
-
-func GetExampleEvent(id uuid.UUID) Event {
+func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 	if id == uuid.Nil {
 		id = uuid.New()
 	}
 
+	if user == uuid.Nil {
+		user = uuid.New()
+	}
+
 	extime := time.Now().Truncate(time.Second)
+	excount := 6
+	exposition := 1
 
 	return Event{
 		Id:            id,
 		Type:          documentType.Event,
+		CreatedAt:     &extime,
+		UpdatedAt:     &extime,
+		User:          user,
 		Carrier:       "BART",
 		Line:          "Red",
+		Trip:          "123",
+		UnitID:        "3095",
+		UnitCount:     &excount,
+		UnitPosition:  &exposition,
 		DepartureStop: "Richmond",
 		ArrivalStop:   "Millbrae",
 		DepartureTime: &extime,
 		ArrivalTime:   &extime,
+		Notes: []string{
+			"Very Full",
+			"Stopped at 12th St. for 5 minutes",
+		},
 	}
 }
 
 func GetExampleEventArray(count int) []Event {
 	evs := make([]Event, count)
 	for i := 0; i < count; i++ {
-		evs[i] = GetExampleEvent(uuid.Nil)
+		evs[i] = GetExampleEvent(uuid.Nil, uuid.Nil)
 	}
 	return evs
 }
 
 var ErrBadEventID = errors.New("bad event ID")
 var ErrBadDocumentType = errors.New("bad event type")
+var ErrBadCreatedAt = errors.New("bad created at time")
+var ErrBadUpdatedAt = errors.New("bad updated at time")
+var ErrBadUser = errors.New("bad user ID")
 
 func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 	if e.Id == uuid.Nil {
@@ -70,6 +94,24 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 		return nil, ErrBadDocumentType
 	}
 
+	if e.CreatedAt != nil && !e.CreatedAt.IsZero() {
+		data["ca"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.CreatedAt.Unix(), 10)}
+	} else {
+		return nil, ErrBadCreatedAt
+	}
+
+	if e.UpdatedAt != nil && !e.UpdatedAt.IsZero() {
+		data["ua"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.UpdatedAt.Unix(), 10)}
+	} else {
+		return nil, ErrBadUpdatedAt
+	}
+
+	if e.User != uuid.Nil {
+		data["u"] = &dynamodb.AttributeValueMemberB{Value: e.User[:]}
+	} else {
+		return nil, ErrBadUser
+	}
+
 	if e.Carrier != "" {
 		data["c"] = &dynamodb.AttributeValueMemberS{Value: e.Carrier}
 	}
@@ -78,8 +120,20 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 		data["l"] = &dynamodb.AttributeValueMemberS{Value: e.Line}
 	}
 
+	if e.Trip != "" {
+		data["tr"] = &dynamodb.AttributeValueMemberS{Value: e.Trip}
+	}
+
 	if e.UnitID != "" {
 		data["u"] = &dynamodb.AttributeValueMemberS{Value: e.UnitID}
+	}
+
+	if e.UnitCount != nil {
+		data["uc"] = &dynamodb.AttributeValueMemberN{Value: strconv.Itoa(*e.UnitCount)}
+	}
+
+	if e.UnitPosition != nil {
+		data["up"] = &dynamodb.AttributeValueMemberN{Value: strconv.Itoa(*e.UnitPosition)}
 	}
 
 	if e.DepartureStop != "" {
@@ -113,9 +167,21 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 	}
 
 	e.Type = documentType.IDMap[getUUID(data["t"])]
+
+	if t := getTime(data["ca"]); !t.IsZero() {
+		e.CreatedAt = &t
+	}
+
+	if t := getTime(data["ua"]); !t.IsZero() {
+		e.UpdatedAt = &t
+	}
+
 	e.Carrier = getString(data["c"])
 	e.Line = getString(data["l"])
+	e.Trip = getString(data["tr"])
 	e.UnitID = getString(data["u"])
+	e.UnitCount = getIntPtr(data["uc"])
+	e.UnitPosition = getIntPtr(data["up"])
 	e.DepartureStop = getString(data["ds"])
 	e.ArrivalStop = getString(data["as"])
 	e.Notes = getStringSlice(data["n"])
@@ -175,4 +241,17 @@ func getTime(data dynamodb.AttributeValue) time.Time {
 		}
 	}
 	return time.Time{}
+}
+
+func getIntPtr(data dynamodb.AttributeValue) *int {
+	if data == nil {
+		return nil
+	}
+
+	if n, ok := data.(*dynamodb.AttributeValueMemberN); ok {
+		if i, err := strconv.Atoi(n.Value); err == nil {
+			return &i
+		}
+	}
+	return nil
 }
