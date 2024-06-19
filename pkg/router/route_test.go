@@ -140,6 +140,15 @@ func TestParams(t *testing.T) {
 				"name": "john",
 			},
 		},
+		{
+			name:        "MultipleSeparatedParams",
+			routePath:   "/events/:id/separator/:name",
+			requestPath: "/events/1/separator/john",
+			expected: PathParams{
+				"id":   "1",
+				"name": "john",
+			},
+		},
 	}
 
 	for _, tc := range tt {
