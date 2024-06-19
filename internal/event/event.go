@@ -11,7 +11,7 @@ import (
 
 type Event struct {
 	Id            uuid.UUID  `json:"id"`
-	Type          string     `json:"type,omitempty"`
+	Type          string     `json:"type"`
 	Carrier       string     `json:"carrier,omitempty"`
 	Line          string     `json:"line,omitempty"`
 	UnitID        string     `json:"unitID,omitempty"`
@@ -24,18 +24,6 @@ type Event struct {
 	Notes         []string   `json:"notes,omitempty"`
 }
 
-var typeNameMap = map[string]uuid.UUID{
-	"public-transit": uuid.MustParse("88c2333e-2bc2-4063-b865-719c24211d2c"),
-}
-
-var typeIDMap map[uuid.UUID]string
-
-func init() {
-	typeIDMap = make(map[uuid.UUID]string, len(typeNameMap))
-	for k, v := range typeNameMap {
-		typeIDMap[v] = k
-	}
-}
 
 func GetExampleEvent(id uuid.UUID) Event {
 	if id == uuid.Nil {
@@ -46,7 +34,7 @@ func GetExampleEvent(id uuid.UUID) Event {
 
 	return Event{
 		Id:            id,
-		Type:          "train",
+		Type:          documentType.Event,
 		Carrier:       "BART",
 		Line:          "Red",
 		DepartureStop: "Richmond",
@@ -64,8 +52,8 @@ func GetExampleEventArray(count int) []Event {
 	return evs
 }
 
-var ErrBadEventType = errors.New("bad event type")
 var ErrBadEventID = errors.New("bad event ID")
+var ErrBadDocumentType = errors.New("bad event type")
 
 func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 	if e.Id == uuid.Nil {
@@ -76,10 +64,10 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 		"id": &dynamodb.AttributeValueMemberB{Value: e.Id[:]},
 	}
 
-	if id, ok := typeNameMap[e.Type]; ok {
+	if id, ok := documentType.NameMap[e.Type]; ok {
 		data["t"] = &dynamodb.AttributeValueMemberB{Value: id[:]}
 	} else {
-		return nil, ErrBadEventType
+		return nil, ErrBadDocumentType
 	}
 
 	if e.Carrier != "" {
@@ -124,7 +112,7 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 		return ErrBadEventID
 	}
 
-	e.Type = typeIDMap[getUUID(data["t"])]
+	e.Type = documentType.IDMap[getUUID(data["t"])]
 	e.Carrier = getString(data["c"])
 	e.Line = getString(data["l"])
 	e.UnitID = getString(data["u"])
