@@ -6,7 +6,7 @@ import (
 	"time"
 
 	dynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/bridgelightcloud/bogie/internal/documentType"
+	"github.com/bridgelightcloud/bogie/internal/db"
 	"github.com/google/uuid"
 )
 
@@ -44,7 +44,7 @@ func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 
 	return Event{
 		Id:            id,
-		Type:          documentType.Event,
+		Type:          db.Event,
 		CreatedAt:     &extime,
 		UpdatedAt:     &extime,
 		User:          user,
@@ -88,7 +88,7 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 		"id": &dynamodb.AttributeValueMemberB{Value: e.Id[:]},
 	}
 
-	if id, ok := documentType.NameMap[e.Type]; ok {
+	if id, ok := db.NameMap[e.Type]; ok {
 		data["t"] = &dynamodb.AttributeValueMemberB{Value: id[:]}
 	} else {
 		return nil, ErrBadDocumentType
@@ -166,7 +166,7 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 		return ErrBadEventID
 	}
 
-	e.Type = documentType.IDMap[getUUID(data["t"])]
+	e.Type = db.IDMap[getUUID(data["t"])]
 
 	if t := getTime(data["ca"]); !t.IsZero() {
 		e.CreatedAt = &t
