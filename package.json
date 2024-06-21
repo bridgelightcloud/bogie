@@ -8,12 +8,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SeannyPhoenix/bogie.git"
+    "url": "git+https://github.com/bridgelightcloud/bogie.git"
   },
   "author": "Seanny Phoenix",
   "license": "GPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/SeannyPhoenix/bogie/issues"
+    "url": "https://github.com/bridgelightcloud/bogie/issues"
   },
-  "homepage": "https://github.com/SeannyPhoenix/bogie#readme"
+  "homepage": "https://github.com/bridgelightcloud/bogie#readme"
 }

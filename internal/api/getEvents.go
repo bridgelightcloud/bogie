@@ -8,7 +8,7 @@ import (
 	lambdaEvents "github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/seannyphoenix/bogie/internal/event"
+	"github.com/bridgelightcloud/bogie/internal/event"
 )
 
 func getEvents() lambdaEvents.LambdaFunctionURLResponse {

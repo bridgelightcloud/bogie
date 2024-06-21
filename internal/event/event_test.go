@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	dynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/bridgelightcloud/bogie/internal/documentType"
+	"github.com/bridgelightcloud/bogie/internal/fixtures"
 	"github.com/google/uuid"
-	"github.com/seannyphoenix/bogie/internal/documentType"
-	"github.com/seannyphoenix/bogie/internal/fixtures"
 	"github.com/stretchr/testify/assert"
 )
 

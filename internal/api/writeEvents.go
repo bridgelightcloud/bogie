@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/seannyphoenix/bogie/internal/event"
+	"github.com/bridgelightcloud/bogie/internal/event"
 )
 
 type PutEventsRequest struct {

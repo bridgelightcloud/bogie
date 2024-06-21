@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bridgelightcloud/bogie/internal/event"
 	"github.com/google/uuid"
-	"github.com/seannyphoenix/bogie/internal/event"
 )
 
 func gen(name string) {

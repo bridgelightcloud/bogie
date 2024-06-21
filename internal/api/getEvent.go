@@ -8,8 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/bridgelightcloud/bogie/internal/event"
 	"github.com/google/uuid"
-	"github.com/seannyphoenix/bogie/internal/event"
 )
 
 func getEvent(id string) lambdaEvents.LambdaFunctionURLResponse {
