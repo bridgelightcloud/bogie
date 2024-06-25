@@ -1,7 +1,6 @@
 package event
 
 import (
-	"errors"
 	"strconv"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 type Event struct {
 	Id            uuid.UUID  `json:"id"`
 	Type          string     `json:"type"`
+	Status        string     `json:"status,omitempty"`
 	CreatedAt     *time.Time `json:"createdAt"`
 	UpdatedAt     *time.Time `json:"updatedAt"`
 	User          uuid.UUID  `json:"user,omitempty"`
@@ -45,6 +45,7 @@ func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 	return Event{
 		Id:            id,
 		Type:          db.EventDoc,
+		Status:        db.ActiveStatus,
 		CreatedAt:     &extime,
 		UpdatedAt:     &extime,
 		User:          user,
@@ -73,15 +74,9 @@ func GetExampleEventArray(count int) []Event {
 	return evs
 }
 
-var ErrBadEventID = errors.New("bad event ID")
-var ErrBadDocumentType = errors.New("bad event type")
-var ErrBadCreatedAt = errors.New("bad created at time")
-var ErrBadUpdatedAt = errors.New("bad updated at time")
-var ErrBadUser = errors.New("bad user ID")
-
 func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 	if e.Id == uuid.Nil {
-		return nil, ErrBadEventID
+		return nil, db.ErrBadDocID
 	}
 
 	data := map[string]dynamodb.AttributeValue{
@@ -91,25 +86,31 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 	if id, ok := db.NameMap[e.Type]; ok {
 		data[db.Type] = &dynamodb.AttributeValueMemberB{Value: id[:]}
 	} else {
-		return nil, ErrBadDocumentType
+		return nil, db.ErrBadDocType
+	}
+
+	if id, ok := db.NameMap[e.Status]; ok {
+		data[db.Status] = &dynamodb.AttributeValueMemberB{Value: id[:]}
+	} else {
+		return nil, db.ErrBadDocStatus
 	}
 
 	if e.CreatedAt != nil && !e.CreatedAt.IsZero() {
 		data[db.CreatedAt] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.CreatedAt.Unix(), 10)}
 	} else {
-		return nil, ErrBadCreatedAt
+		return nil, db.ErrBadCreatedAt
 	}
 
 	if e.UpdatedAt != nil && !e.UpdatedAt.IsZero() {
 		data[db.UpdatedAt] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.UpdatedAt.Unix(), 10)}
 	} else {
-		return nil, ErrBadUpdatedAt
+		return nil, db.ErrBadUpdatedAt
 	}
 
 	if e.User != uuid.Nil {
 		data[db.UserID] = &dynamodb.AttributeValueMemberB{Value: e.User[:]}
 	} else {
-		return nil, ErrBadUser
+		return nil, db.ErrBadUserID
 	}
 
 	if e.Carrier != "" {
@@ -163,17 +164,35 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 	if id := db.GetUUID(data["id"]); id != uuid.Nil {
 		e.Id = id
 	} else {
-		return ErrBadEventID
+		return db.ErrBadDocID
 	}
 
-	e.Type = db.IDMap[db.GetUUID(data[db.Type])]
+	if t, ok := db.IDMap[db.GetUUID(data[db.Type])]; ok {
+		e.Type = t
+	} else {
+		return db.ErrBadDocType
+	}
+
+	if s, ok := db.IDMap[db.GetUUID(data[db.Status])]; ok {
+		e.Status = s
+	} else {
+		return db.ErrBadDocStatus
+	}
 
 	if t := db.GetTime(data[db.CreatedAt]); !t.IsZero() {
 		e.CreatedAt = &t
+	} else {
+		return db.ErrBadCreatedAt
 	}
 
 	if t := db.GetTime(data[db.UpdatedAt]); !t.IsZero() {
 		e.UpdatedAt = &t
+	} else {
+		return db.ErrBadUpdatedAt
+	}
+
+	if u := db.GetUUID(data[db.UserID]); u != uuid.Nil {
+		e.User = u
 	}
 
 	e.Carrier = db.GetString(data[db.Carrier])

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -8,6 +9,37 @@ import (
 	"github.com/google/uuid"
 )
 
+// Document types
+const (
+	EventDoc = "event"
+	UnitDoc  = "unit"
+	UserDoc  = "user"
+)
+
+// Document statuses
+const (
+	ActiveStatus   = "active"
+	InactiveStatus = "inactive"
+)
+
+var NameMap = map[string]uuid.UUID{
+	EventDoc:       uuid.MustParse("88c2333e-2bc2-4063-b865-719c24211d2c"),
+	UnitDoc:        uuid.MustParse("915ddb34-93ba-4e2f-99f2-ea814bb2790d"),
+	UserDoc:        uuid.MustParse("8d930d82-24e9-4fc1-824b-9e1253d4ee02"),
+	ActiveStatus:   uuid.MustParse("5c96e882-112a-42e3-adf3-941f28ff9956"),
+	InactiveStatus: uuid.MustParse("aca32352-08c1-40ee-8a6e-e95d77e68724"),
+}
+
+var IDMap map[uuid.UUID]string
+
+func init() {
+	IDMap = make(map[uuid.UUID]string, len(NameMap))
+	for k, v := range NameMap {
+		IDMap[v] = k
+	}
+}
+
+// Document Fields
 const (
 	ArrivalStop   = "as"
 	ArrivalTime   = "at"
@@ -18,6 +50,7 @@ const (
 	ID            = "id"
 	Line          = "l"
 	Notes         = "n"
+	Status        = "s"
 	Type          = "t"
 	Trip          = "tr"
 	UnitID        = "u"
@@ -85,3 +118,13 @@ func GetIntPtr(data dynamodb.AttributeValue) *int {
 	}
 	return nil
 }
+
+// Errors
+var (
+	ErrBadDocID     = errors.New("bad event ID")
+	ErrBadDocType   = errors.New("bad event type")
+	ErrBadDocStatus = errors.New("bad status")
+	ErrBadCreatedAt = errors.New("bad created at time")
+	ErrBadUpdatedAt = errors.New("bad updated at time")
+	ErrBadUserID    = errors.New("bad user ID")
+)

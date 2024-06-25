@@ -55,46 +55,58 @@ func TestMarshDynamoDBErr(t *testing.T) {
 		expectedError error
 	}{
 		{
-			name: "ErrBadEventID",
+			name: "ErrBadDocID",
 			event: Event{
 				Id: uuid.Nil,
 			},
-			expectedError: ErrBadEventID,
+			expectedError: db.ErrBadDocID,
 		},
 		{
-			name: "ErrBadEventType",
+			name: "ErrBadDocType",
 			event: Event{
 				Id:   fixtures.GetTestUUID(),
 				Type: "unknown-type",
 			},
-			expectedError: ErrBadDocumentType,
+			expectedError: db.ErrBadDocType,
+		},
+		{
+			name: "ErrBadDocStatus",
+			event: Event{
+				Id:     fixtures.GetTestUUID(),
+				Type:   db.EventDoc,
+				Status: "unknown-status",
+			},
+			expectedError: db.ErrBadDocStatus,
 		},
 		{
 			name: "ErrBadCreatedAt",
 			event: Event{
-				Id:   fixtures.GetTestUUID(),
-				Type: db.EventDoc,
+				Id:     fixtures.GetTestUUID(),
+				Type:   db.EventDoc,
+				Status: db.ActiveStatus,
 			},
-			expectedError: ErrBadCreatedAt,
+			expectedError: db.ErrBadCreatedAt,
 		},
 		{
 			name: "ErrBadUpdatedAt",
 			event: Event{
 				Id:        fixtures.GetTestUUID(),
 				Type:      db.EventDoc,
+				Status:    db.ActiveStatus,
 				CreatedAt: fixtures.GetTestTimePtr(),
 			},
-			expectedError: ErrBadUpdatedAt,
+			expectedError: db.ErrBadUpdatedAt,
 		},
 		{
 			name: "ErrBadUser",
 			event: Event{
 				Id:        fixtures.GetTestUUID(),
 				Type:      db.EventDoc,
+				Status:    db.ActiveStatus,
 				CreatedAt: fixtures.GetTestTimePtr(),
 				UpdatedAt: fixtures.GetTestTimePtr(),
 			},
-			expectedError: ErrBadUser,
+			expectedError: db.ErrBadUserID,
 		},
 	}
 
