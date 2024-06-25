@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/bridgelightcloud/bogie/internal/event"
+	"github.com/bridgelightcloud/bogie/internal/models"
 )
 
 type PutEventsRequest struct {
@@ -16,7 +16,7 @@ type PutEventsRequest struct {
 }
 
 func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
-	var evs []event.Event
+	var evs []models.Event
 	body := r.Body
 
 	err := json.Unmarshal([]byte(body), &evs)
@@ -63,9 +63,9 @@ func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 	}
 }
 
-func chunkifyEvents(evs []event.Event) [][]event.Event {
+func chunkifyEvents(evs []models.Event) [][]models.Event {
 	chunkSize := 25
-	chunks := make([][]event.Event, 0)
+	chunks := make([][]models.Event, 0)
 	for i := 0; i < len(evs); i += chunkSize {
 		end := i + chunkSize
 

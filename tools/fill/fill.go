@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bridgelightcloud/bogie/internal/event"
+	"github.com/bridgelightcloud/bogie/internal/models"
 	"github.com/google/uuid"
 )
 
@@ -29,11 +29,11 @@ func gen(name string) {
 		log.Fatal(err)
 	}
 
-	evts := []event.Event{}
+	evts := []models.Event{}
 	for _, unit := range units {
 		count := 1 + strings.Count(unit, "-")
 		for i := 0; i < count; i++ {
-			evt := event.Event{
+			evt := models.Event{
 				Id:      uuid.New(),
 				Type:    "public-transit",
 				Carrier: strings.ToUpper(name),

@@ -8,7 +8,7 @@ import (
 	lambdaEvents "github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/bridgelightcloud/bogie/internal/event"
+	"github.com/bridgelightcloud/bogie/internal/models"
 )
 
 func getEvents() lambdaEvents.LambdaFunctionURLResponse {
@@ -22,9 +22,9 @@ func getEvents() lambdaEvents.LambdaFunctionURLResponse {
 		}
 	}
 
-	var events []event.Event
+	var events []models.Event
 	for _, item := range res.Items {
-		var event event.Event
+		var event models.Event
 		err = event.UnmarshalDynamoDB(item)
 		if err != nil {
 			return lambdaEvents.LambdaFunctionURLResponse{
