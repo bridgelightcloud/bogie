@@ -44,7 +44,7 @@ func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 
 	return Event{
 		Id:            id,
-		Type:          db.Event,
+		Type:          db.EventDoc,
 		CreatedAt:     &extime,
 		UpdatedAt:     &extime,
 		User:          user,
@@ -85,173 +85,114 @@ func (e Event) MarshalDynamoDB() (map[string]dynamodb.AttributeValue, error) {
 	}
 
 	data := map[string]dynamodb.AttributeValue{
-		"id": &dynamodb.AttributeValueMemberB{Value: e.Id[:]},
+		db.ID: &dynamodb.AttributeValueMemberB{Value: e.Id[:]},
 	}
 
 	if id, ok := db.NameMap[e.Type]; ok {
-		data["t"] = &dynamodb.AttributeValueMemberB{Value: id[:]}
+		data[db.Type] = &dynamodb.AttributeValueMemberB{Value: id[:]}
 	} else {
 		return nil, ErrBadDocumentType
 	}
 
 	if e.CreatedAt != nil && !e.CreatedAt.IsZero() {
-		data["ca"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.CreatedAt.Unix(), 10)}
+		data[db.CreatedAt] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.CreatedAt.Unix(), 10)}
 	} else {
 		return nil, ErrBadCreatedAt
 	}
 
 	if e.UpdatedAt != nil && !e.UpdatedAt.IsZero() {
-		data["ua"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.UpdatedAt.Unix(), 10)}
+		data[db.UpdatedAt] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.UpdatedAt.Unix(), 10)}
 	} else {
 		return nil, ErrBadUpdatedAt
 	}
 
 	if e.User != uuid.Nil {
-		data["u"] = &dynamodb.AttributeValueMemberB{Value: e.User[:]}
+		data[db.UserID] = &dynamodb.AttributeValueMemberB{Value: e.User[:]}
 	} else {
 		return nil, ErrBadUser
 	}
 
 	if e.Carrier != "" {
-		data["c"] = &dynamodb.AttributeValueMemberS{Value: e.Carrier}
+		data[db.Carrier] = &dynamodb.AttributeValueMemberS{Value: e.Carrier}
 	}
 
 	if e.Line != "" {
-		data["l"] = &dynamodb.AttributeValueMemberS{Value: e.Line}
+		data[db.Line] = &dynamodb.AttributeValueMemberS{Value: e.Line}
 	}
 
 	if e.Trip != "" {
-		data["tr"] = &dynamodb.AttributeValueMemberS{Value: e.Trip}
+		data[db.Trip] = &dynamodb.AttributeValueMemberS{Value: e.Trip}
 	}
 
 	if e.UnitID != "" {
-		data["u"] = &dynamodb.AttributeValueMemberS{Value: e.UnitID}
+		data[db.UnitID] = &dynamodb.AttributeValueMemberS{Value: e.UnitID}
 	}
 
 	if e.UnitCount != nil {
-		data["uc"] = &dynamodb.AttributeValueMemberN{Value: strconv.Itoa(*e.UnitCount)}
+		data[db.UnitCount] = &dynamodb.AttributeValueMemberN{Value: strconv.Itoa(*e.UnitCount)}
 	}
 
 	if e.UnitPosition != nil {
-		data["up"] = &dynamodb.AttributeValueMemberN{Value: strconv.Itoa(*e.UnitPosition)}
+		data[db.UnitPosition] = &dynamodb.AttributeValueMemberN{Value: strconv.Itoa(*e.UnitPosition)}
 	}
 
 	if e.DepartureStop != "" {
-		data["ds"] = &dynamodb.AttributeValueMemberS{Value: e.DepartureStop}
+		data[db.DepartureStop] = &dynamodb.AttributeValueMemberS{Value: e.DepartureStop}
 	}
 
 	if e.ArrivalStop != "" {
-		data["as"] = &dynamodb.AttributeValueMemberS{Value: e.ArrivalStop}
+		data[db.ArrivalStop] = &dynamodb.AttributeValueMemberS{Value: e.ArrivalStop}
 	}
 
 	if e.DepartureTime != nil && !e.DepartureTime.IsZero() {
-		data["dt"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.DepartureTime.Unix(), 10)}
+		data[db.DepartureTime] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.DepartureTime.Unix(), 10)}
 	}
 
 	if e.ArrivalTime != nil && !e.ArrivalTime.IsZero() {
-		data["at"] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.ArrivalTime.Unix(), 10)}
+		data[db.ArrivalTime] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.ArrivalTime.Unix(), 10)}
 	}
 
 	if len(e.Notes) > 0 {
-		data["n"] = &dynamodb.AttributeValueMemberSS{Value: e.Notes}
+		data[db.Notes] = &dynamodb.AttributeValueMemberSS{Value: e.Notes}
 	}
 
 	return data, nil
 }
 
 func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error {
-	if id := getUUID(data["id"]); id != uuid.Nil {
+	if id := db.GetUUID(data["id"]); id != uuid.Nil {
 		e.Id = id
 	} else {
 		return ErrBadEventID
 	}
 
-	e.Type = db.IDMap[getUUID(data["t"])]
+	e.Type = db.IDMap[db.GetUUID(data[db.Type])]
 
-	if t := getTime(data["ca"]); !t.IsZero() {
+	if t := db.GetTime(data[db.CreatedAt]); !t.IsZero() {
 		e.CreatedAt = &t
 	}
 
-	if t := getTime(data["ua"]); !t.IsZero() {
+	if t := db.GetTime(data[db.UpdatedAt]); !t.IsZero() {
 		e.UpdatedAt = &t
 	}
 
-	e.Carrier = getString(data["c"])
-	e.Line = getString(data["l"])
-	e.Trip = getString(data["tr"])
-	e.UnitID = getString(data["u"])
-	e.UnitCount = getIntPtr(data["uc"])
-	e.UnitPosition = getIntPtr(data["up"])
-	e.DepartureStop = getString(data["ds"])
-	e.ArrivalStop = getString(data["as"])
-	e.Notes = getStringSlice(data["n"])
+	e.Carrier = db.GetString(data[db.Carrier])
+	e.Line = db.GetString(data[db.Line])
+	e.Trip = db.GetString(data[db.Trip])
+	e.UnitID = db.GetString(data[db.UnitID])
+	e.UnitCount = db.GetIntPtr(data[db.UnitCount])
+	e.UnitPosition = db.GetIntPtr(data[db.UnitPosition])
+	e.DepartureStop = db.GetString(data[db.DepartureStop])
+	e.ArrivalStop = db.GetString(data[db.ArrivalStop])
+	e.Notes = db.GetStringSlice(data[db.Notes])
 
-	if t := getTime(data["dt"]); !t.IsZero() {
+	if t := db.GetTime(data[db.DepartureTime]); !t.IsZero() {
 		e.DepartureTime = &t
 	}
 
-	if t := getTime(data["at"]); !t.IsZero() {
+	if t := db.GetTime(data[db.ArrivalTime]); !t.IsZero() {
 		e.ArrivalTime = &t
 	}
 
-	return nil
-}
-
-func getUUID(data dynamodb.AttributeValue) uuid.UUID {
-	if data == nil {
-		return uuid.Nil
-	}
-
-	if id, ok := data.(*dynamodb.AttributeValueMemberB); ok {
-		return uuid.UUID(id.Value)
-	}
-	return uuid.Nil
-}
-
-func getString(data dynamodb.AttributeValue) string {
-	if data == nil {
-		return ""
-	}
-
-	if s, ok := data.(*dynamodb.AttributeValueMemberS); ok {
-		return s.Value
-	}
-	return ""
-}
-
-func getStringSlice(data dynamodb.AttributeValue) []string {
-	if data == nil {
-		return nil
-	}
-
-	if ss, ok := data.(*dynamodb.AttributeValueMemberSS); ok {
-		return ss.Value
-	}
-	return nil
-}
-
-func getTime(data dynamodb.AttributeValue) time.Time {
-	if data == nil {
-		return time.Time{}
-	}
-
-	if n, ok := data.(*dynamodb.AttributeValueMemberN); ok {
-		if i, err := strconv.ParseInt(n.Value, 10, 64); err == nil {
-			return time.Unix(i, 0)
-		}
-	}
-	return time.Time{}
-}
-
-func getIntPtr(data dynamodb.AttributeValue) *int {
-	if data == nil {
-		return nil
-	}
-
-	if n, ok := data.(*dynamodb.AttributeValueMemberN); ok {
-		if i, err := strconv.Atoi(n.Value); err == nil {
-			return &i
-		}
-	}
 	return nil
 }

@@ -18,7 +18,7 @@ func TestGetExampleEvent(t *testing.T) {
 
 	assert.True(evt.Id != uuid.Nil)
 	assert.True(evt.User != uuid.Nil)
-	assert.Equal(evt.Type, db.Event)
+	assert.Equal(evt.Type, db.EventDoc)
 }
 
 func TestGetExampleEventArray(t *testing.T) {
@@ -36,7 +36,7 @@ func TestMarshalDynamoDB(t *testing.T) {
 
 	uuid1 := fixtures.GetTestUUID()
 	uuid2 := fixtures.GetTestUUID()
-	typeUUID := db.NameMap[db.Event]
+	typeUUID := db.NameMap[db.EventDoc]
 
 	evt := GetExampleEvent(uuid1, uuid2)
 
@@ -73,7 +73,7 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadCreatedAt",
 			event: Event{
 				Id:   fixtures.GetTestUUID(),
-				Type: db.Event,
+				Type: db.EventDoc,
 			},
 			expectedError: ErrBadCreatedAt,
 		},
@@ -81,7 +81,7 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadUpdatedAt",
 			event: Event{
 				Id:        fixtures.GetTestUUID(),
-				Type:      db.Event,
+				Type:      db.EventDoc,
 				CreatedAt: fixtures.GetTestTimePtr(),
 			},
 			expectedError: ErrBadUpdatedAt,
@@ -90,7 +90,7 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadUser",
 			event: Event{
 				Id:        fixtures.GetTestUUID(),
-				Type:      db.Event,
+				Type:      db.EventDoc,
 				CreatedAt: fixtures.GetTestTimePtr(),
 				UpdatedAt: fixtures.GetTestTimePtr(),
 			},
