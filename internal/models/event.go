@@ -203,7 +203,6 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 	e.UnitPosition = db.GetIntPtr(data[db.UnitPosition])
 	e.DepartureStop = db.GetString(data[db.DepartureStop])
 	e.ArrivalStop = db.GetString(data[db.ArrivalStop])
-	e.Notes = db.GetStringSlice(data[db.Notes])
 
 	if t := db.GetTime(data[db.DepartureTime]); !t.IsZero() {
 		e.DepartureTime = &t
@@ -212,6 +211,8 @@ func (e *Event) UnmarshalDynamoDB(data map[string]dynamodb.AttributeValue) error
 	if t := db.GetTime(data[db.ArrivalTime]); !t.IsZero() {
 		e.ArrivalTime = &t
 	}
+
+	e.Notes = db.GetStringSlice(data[db.Notes])
 
 	return nil
 }

@@ -127,4 +127,6 @@ var (
 	ErrBadCreatedAt = errors.New("bad created at time")
 	ErrBadUpdatedAt = errors.New("bad updated at time")
 	ErrBadUserID    = errors.New("bad user ID")
+	ErrBadCarrier  = errors.New("bad carrier")
+	ErrBadUnitID		= errors.New("bad unit ID")
 )
