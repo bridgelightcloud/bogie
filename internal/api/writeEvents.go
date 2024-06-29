@@ -23,7 +23,7 @@ func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 	if err != nil {
 		return events.LambdaFunctionURLResponse{
 			StatusCode: 400,
-			Body:       "Error unmarshalling events",
+			Body:       "Error unmarshaling events",
 		}
 	}
 
@@ -36,7 +36,7 @@ func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 		for _, ev := range chunk {
 			item, err := ev.MarshalDynamoDB()
 			if err != nil {
-				println("Error marshalling event: ", err.Error())
+				println("Error marshaling event: ", err.Error())
 				return events.LambdaFunctionURLResponse{
 					StatusCode: 500,
 				}

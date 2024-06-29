@@ -41,7 +41,7 @@ func getEvent(id string) lambdaEvents.LambdaFunctionURLResponse {
 	if err != nil {
 		return lambdaEvents.LambdaFunctionURLResponse{
 			StatusCode: 500,
-			Body:       "Error unmarshalling event",
+			Body:       "Error unmarshaling event",
 		}
 	}
 
@@ -49,7 +49,7 @@ func getEvent(id string) lambdaEvents.LambdaFunctionURLResponse {
 	if err != nil {
 		return lambdaEvents.LambdaFunctionURLResponse{
 			StatusCode: 500,
-			Body:       "Error marshalling event",
+			Body:       "Error marshaling event",
 		}
 	}
 

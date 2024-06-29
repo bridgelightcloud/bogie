@@ -29,7 +29,7 @@ func getEvents() lambdaEvents.LambdaFunctionURLResponse {
 		if err != nil {
 			return lambdaEvents.LambdaFunctionURLResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       "Error unmarshalling event",
+				Body:       "Error unmarshaling event",
 			}
 		}
 		events = append(events, event)
@@ -39,7 +39,7 @@ func getEvents() lambdaEvents.LambdaFunctionURLResponse {
 	if err != nil {
 		return lambdaEvents.LambdaFunctionURLResponse{
 			StatusCode: http.StatusInternalServerError,
-			Body:       "Error marshalling events",
+			Body:       "Error marshaling events",
 		}
 	}
 
