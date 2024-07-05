@@ -31,3 +31,7 @@ func GetExampleUnit() Unit {
 		UnitID:    "1234",
 	}
 }
+
+func (u Unit) MarshalDynamoDB() (DDBDocument, error) {
+	return nil, nil
+}
