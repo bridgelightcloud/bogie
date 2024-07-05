@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/bridgelightcloud/bogie/internal/db"
 	"github.com/bridgelightcloud/bogie/internal/models"
 	"github.com/google/uuid"
 )
@@ -34,9 +35,9 @@ func gen(name string) {
 		count := 1 + strings.Count(unit, "-")
 		for i := 0; i < count; i++ {
 			evt := models.Event{
-				Id:      uuid.New(),
-				Type:    "public-transit",
-				Carrier: strings.ToUpper(name),
+				Id:     uuid.New(),
+				Type:   db.EventDoc,
+				Agency: strings.ToUpper(name),
 				UnitID: strings.TrimRightFunc(unit, func(r rune) bool {
 					return r == '-'
 				}),

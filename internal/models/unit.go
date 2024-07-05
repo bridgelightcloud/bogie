@@ -13,7 +13,7 @@ type Unit struct {
 	Status    string     `json:"status,omitempty"`
 	CreatedAt *time.Time `json:"createdAt"`
 	UpdatedAt *time.Time `json:"updatedAt"`
-	Carrier   string     `json:"carrier,omitempty"`
+	Agency    string     `json:"agency,omitempty"`
 	UnitID    string     `json:"unitID,omitempty"`
 	Notes     []string   `json:"notes,omitempty"`
 }
@@ -27,11 +27,15 @@ func GetExampleUnit() Unit {
 		Status:    db.ActiveStatus,
 		CreatedAt: &t,
 		UpdatedAt: &t,
-		Carrier:   "BART",
+		Agency:    "BART",
 		UnitID:    "1234",
 	}
 }
 
 func (u Unit) MarshalDynamoDB() (DDBDocument, error) {
 	return nil, nil
+}
+
+func (u *Unit) UnmarshalDynamoDB(item DDBDocument) error {
+	return nil
 }

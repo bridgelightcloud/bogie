@@ -41,15 +41,15 @@ func init() {
 
 // Document Fields
 const (
+	Agency        = "a"
 	ArrivalStop   = "as"
 	ArrivalTime   = "at"
-	Carrier       = "c"
 	CreatedAt     = "ca"
 	DepartureStop = "ds"
 	DepartureTime = "dt"
 	ID            = "id"
-	Line          = "l"
 	Notes         = "n"
+	Route         = "r"
 	Status        = "s"
 	Type          = "t"
 	Trip          = "tr"
@@ -127,6 +127,6 @@ var (
 	ErrBadCreatedAt = errors.New("bad created at time")
 	ErrBadUpdatedAt = errors.New("bad updated at time")
 	ErrBadUserID    = errors.New("bad user ID")
-	ErrBadCarrier  = errors.New("bad carrier")
-	ErrBadUnitID		= errors.New("bad unit ID")
+	ErrBadCarrier   = errors.New("bad carrier")
+	ErrBadUnitID    = errors.New("bad unit ID")
 )

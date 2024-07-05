@@ -16,8 +16,8 @@ type Event struct {
 	CreatedAt     *time.Time `json:"createdAt"`
 	UpdatedAt     *time.Time `json:"updatedAt"`
 	User          uuid.UUID  `json:"user,omitempty"`
-	Carrier       string     `json:"carrier,omitempty"`
-	Line          string     `json:"line,omitempty"`
+	Agency        string     `json:"agency,omitempty"`
+	Route         string     `json:"route,omitempty"`
 	Trip          string     `json:"trip,omitempty"`
 	UnitID        string     `json:"unitID,omitempty"`
 	UnitCount     *int       `json:"unitCount,omitempty"`
@@ -49,8 +49,8 @@ func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 		CreatedAt:     &extime,
 		UpdatedAt:     &extime,
 		User:          user,
-		Carrier:       "BART",
-		Line:          "Red",
+		Agency:        "BART",
+		Route:         "Red",
 		Trip:          "123",
 		UnitID:        "3095",
 		UnitCount:     &excount,
@@ -113,12 +113,12 @@ func (e Event) MarshalDynamoDB() (DDBDocument, error) {
 		return nil, db.ErrBadUserID
 	}
 
-	if e.Carrier != "" {
-		data[db.Carrier] = &dynamodb.AttributeValueMemberS{Value: e.Carrier}
+	if e.Agency != "" {
+		data[db.Agency] = &dynamodb.AttributeValueMemberS{Value: e.Agency}
 	}
 
-	if e.Line != "" {
-		data[db.Line] = &dynamodb.AttributeValueMemberS{Value: e.Line}
+	if e.Route != "" {
+		data[db.Route] = &dynamodb.AttributeValueMemberS{Value: e.Route}
 	}
 
 	if e.Trip != "" {
@@ -195,8 +195,8 @@ func (e *Event) UnmarshalDynamoDB(data DDBDocument) error {
 		e.User = u
 	}
 
-	e.Carrier = db.GetString(data[db.Carrier])
-	e.Line = db.GetString(data[db.Line])
+	e.Agency = db.GetString(data[db.Agency])
+	e.Route = db.GetString(data[db.Route])
 	e.Trip = db.GetString(data[db.Trip])
 	e.UnitID = db.GetString(data[db.UnitID])
 	e.UnitCount = db.GetIntPtr(data[db.UnitCount])
