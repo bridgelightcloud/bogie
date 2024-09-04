@@ -10,23 +10,23 @@ import (
 )
 
 type Event struct {
-	Id            uuid.UUID  `json:"id"`
-	Type          string     `json:"type"`
-	Status        string     `json:"status,omitempty"`
-	CreatedAt     *time.Time `json:"createdAt"`
-	UpdatedAt     *time.Time `json:"updatedAt"`
-	User          uuid.UUID  `json:"user,omitempty"`
-	Agency        string     `json:"agency,omitempty"`
-	Route         string     `json:"route,omitempty"`
-	Trip          string     `json:"trip,omitempty"`
-	UnitID        string     `json:"unitID,omitempty"`
-	UnitCount     *int       `json:"unitCount,omitempty"`
-	UnitPosition  *int       `json:"unitPosition,omitempty"`
-	DepartureStop string     `json:"departureStop,omitempty"`
-	ArrivalStop   string     `json:"arrivalStop,omitempty"`
-	DepartureTime *time.Time `json:"departureTime,omitempty"`
-	ArrivalTime   *time.Time `json:"arrivalTime,omitempty"`
-	Notes         []string   `json:"notes,omitempty"`
+	Id            uuid.UUID  `json:"id"`                      // id
+	Type          string     `json:"type"`                    // t
+	Status        string     `json:"status,omitempty"`        // s
+	CreatedAt     *time.Time `json:"createdAt"`               // ca
+	UpdatedAt     *time.Time `json:"updatedAt"`               // ua
+	User          uuid.UUID  `json:"user,omitempty"`          // uid
+	Agency        string     `json:"agency,omitempty"`        // a
+	Route         string     `json:"route,omitempty"`         // r
+	Trip          string     `json:"trip,omitempty"`          // tr
+	UnitID        string     `json:"unitID,omitempty"`        // u
+	UnitCount     *int       `json:"unitCount,omitempty"`     // uc
+	UnitPosition  *int       `json:"unitPosition,omitempty"`  // up
+	DepartureStop string     `json:"departureStop,omitempty"` // ds
+	ArrivalStop   string     `json:"arrivalStop,omitempty"`   // as
+	DepartureTime *time.Time `json:"departureTime,omitempty"` // dt
+	ArrivalTime   *time.Time `json:"arrivalTime,omitempty"`   // at
+	Notes         []string   `json:"notes,omitempty"`         // n
 }
 
 func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {

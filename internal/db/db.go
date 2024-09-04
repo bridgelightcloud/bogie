@@ -121,9 +121,9 @@ func GetIntPtr(data dynamodb.AttributeValue) *int {
 
 // Errors
 var (
-	ErrBadDocID     = errors.New("bad event ID")
-	ErrBadDocType   = errors.New("bad event type")
-	ErrBadDocStatus = errors.New("bad status")
+	ErrBadDocID     = errors.New("bad document ID")
+	ErrBadDocType   = errors.New("bad document type")
+	ErrBadDocStatus = errors.New("bad document status")
 	ErrBadCreatedAt = errors.New("bad created at time")
 	ErrBadUpdatedAt = errors.New("bad updated at time")
 	ErrBadUserID    = errors.New("bad user ID")
