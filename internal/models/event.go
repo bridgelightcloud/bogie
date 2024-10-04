@@ -44,8 +44,8 @@ func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 
 	return Event{
 		Id:            id,
-		Type:          db.EventDoc,
-		Status:        db.ActiveStatus,
+		Type:          db.DocTypeEvent,
+		Status:        db.StatusActive,
 		CreatedAt:     &extime,
 		UpdatedAt:     &extime,
 		User:          user,
@@ -74,12 +74,12 @@ func GetExampleEventArray(count int) []Event {
 	return evs
 }
 
-func (e Event) MarshalDynamoDB() (DDBDocument, error) {
+func (e Event) MarshalDynamoDB() (DBDocument, error) {
 	if e.Id == uuid.Nil {
 		return nil, db.ErrBadDocID
 	}
 
-	data := DDBDocument{
+	data := DBDocument{
 		db.ID: &dynamodb.AttributeValueMemberB{Value: e.Id[:]},
 	}
 
@@ -96,13 +96,17 @@ func (e Event) MarshalDynamoDB() (DDBDocument, error) {
 	}
 
 	if e.CreatedAt != nil && !e.CreatedAt.IsZero() {
-		data[db.CreatedAt] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.CreatedAt.Unix(), 10)}
+		data[db.CreatedAt] = &dynamodb.AttributeValueMemberN{
+			Value: strconv.FormatInt(e.CreatedAt.Unix(), 10),
+		}
 	} else {
 		return nil, db.ErrBadCreatedAt
 	}
 
 	if e.UpdatedAt != nil && !e.UpdatedAt.IsZero() {
-		data[db.UpdatedAt] = &dynamodb.AttributeValueMemberN{Value: strconv.FormatInt(e.UpdatedAt.Unix(), 10)}
+		data[db.UpdatedAt] = &dynamodb.AttributeValueMemberN{
+			Value: strconv.FormatInt(e.UpdatedAt.Unix(), 10),
+		}
 	} else {
 		return nil, db.ErrBadUpdatedAt
 	}
@@ -160,7 +164,7 @@ func (e Event) MarshalDynamoDB() (DDBDocument, error) {
 	return data, nil
 }
 
-func (e *Event) UnmarshalDynamoDB(data DDBDocument) error {
+func (e *Event) UnmarshalDynamoDB(data DBDocument) error {
 	if id := db.GetUUID(data["id"]); id != uuid.Nil {
 		e.Id = id
 	} else {

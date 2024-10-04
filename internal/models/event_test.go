@@ -18,7 +18,7 @@ func TestGetExampleEvent(t *testing.T) {
 
 	assert.True(evt.Id != uuid.Nil)
 	assert.True(evt.User != uuid.Nil)
-	assert.Equal(evt.Type, db.EventDoc)
+	assert.Equal(evt.Type, db.DocTypeEvent)
 }
 
 func TestGetExampleEventArray(t *testing.T) {
@@ -36,7 +36,7 @@ func TestMarshalDynamoDB(t *testing.T) {
 
 	uuid1 := fixtures.GetTestUUID()
 	uuid2 := fixtures.GetTestUUID()
-	typeUUID := db.NameMap[db.EventDoc]
+	typeUUID := db.NameMap[db.DocTypeEvent]
 
 	evt := GetExampleEvent(uuid1, uuid2)
 
@@ -73,7 +73,7 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadDocStatus",
 			event: Event{
 				Id:     fixtures.GetTestUUID(),
-				Type:   db.EventDoc,
+				Type:   db.DocTypeEvent,
 				Status: "unknown-status",
 			},
 			expectedError: db.ErrBadDocStatus,
@@ -82,8 +82,8 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadCreatedAt",
 			event: Event{
 				Id:     fixtures.GetTestUUID(),
-				Type:   db.EventDoc,
-				Status: db.ActiveStatus,
+				Type:   db.DocTypeEvent,
+				Status: db.StatusActive,
 			},
 			expectedError: db.ErrBadCreatedAt,
 		},
@@ -91,8 +91,8 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadUpdatedAt",
 			event: Event{
 				Id:        fixtures.GetTestUUID(),
-				Type:      db.EventDoc,
-				Status:    db.ActiveStatus,
+				Type:      db.DocTypeEvent,
+				Status:    db.StatusActive,
 				CreatedAt: fixtures.GetTestTimePtr(),
 			},
 			expectedError: db.ErrBadUpdatedAt,
@@ -101,8 +101,8 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			name: "ErrBadUser",
 			event: Event{
 				Id:        fixtures.GetTestUUID(),
-				Type:      db.EventDoc,
-				Status:    db.ActiveStatus,
+				Type:      db.DocTypeEvent,
+				Status:    db.StatusActive,
 				CreatedAt: fixtures.GetTestTimePtr(),
 				UpdatedAt: fixtures.GetTestTimePtr(),
 			},

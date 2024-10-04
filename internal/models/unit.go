@@ -23,8 +23,8 @@ func GetExampleUnit() Unit {
 
 	return Unit{
 		Id:        uuid.New(),
-		Type:      db.UnitDoc,
-		Status:    db.ActiveStatus,
+		Type:      db.DocTypeUnit,
+		Status:    db.StatusActive,
 		CreatedAt: &t,
 		UpdatedAt: &t,
 		Agency:    "BART",
@@ -32,10 +32,10 @@ func GetExampleUnit() Unit {
 	}
 }
 
-func (u Unit) MarshalDynamoDB() (DDBDocument, error) {
+func (u Unit) MarshalDynamoDB() (DBDocument, error) {
 	return nil, nil
 }
 
-func (u *Unit) UnmarshalDynamoDB(item DDBDocument) error {
+func (u *Unit) UnmarshalDynamoDB(data DBDocument) error {
 	return nil
 }

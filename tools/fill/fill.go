@@ -36,7 +36,7 @@ func gen(name string) {
 		for i := 0; i < count; i++ {
 			evt := models.Event{
 				Id:     uuid.New(),
-				Type:   db.EventDoc,
+				Type:   db.DocTypeEvent,
 				Agency: strings.ToUpper(name),
 				UnitID: strings.TrimRightFunc(unit, func(r rune) bool {
 					return r == '-'
