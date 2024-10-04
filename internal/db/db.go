@@ -66,7 +66,11 @@ func GetUUID(data dynamodb.AttributeValue) uuid.UUID {
 	}
 
 	if id, ok := data.(*dynamodb.AttributeValueMemberB); ok {
-		return uuid.UUID(id.Value)
+		value, err := uuid.FromBytes(id.Value)
+		if err == nil {
+			return uuid.Nil
+		}
+		return value
 	}
 	return uuid.Nil
 }
