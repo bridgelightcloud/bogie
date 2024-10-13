@@ -139,3 +139,5 @@ var (
 var (
 	DynamoDBBatchWriteLimit = 25
 )
+
+type DBDocument map[string]dynamodb.AttributeValue

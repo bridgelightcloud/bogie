@@ -34,12 +34,12 @@ func GetExampleUnit() Unit {
 	}
 }
 
-func (u Unit) MarshalDynamoDB() (DBDocument, error) {
+func (u Unit) MarshalDynamoDB() (db.DBDocument, error) {
 	if u.Id == uuid.Nil {
 		return nil, db.ErrBadDocID
 	}
 
-	data := DBDocument{
+	data := db.DBDocument{
 		db.ID: &dynamodb.AttributeValueMemberB{Value: u.Id[:]},
 	}
 
@@ -86,7 +86,7 @@ func (u Unit) MarshalDynamoDB() (DBDocument, error) {
 	return data, nil
 }
 
-func (u *Unit) UnmarshalDynamoDB(data DBDocument) error {
+func (u *Unit) UnmarshalDynamoDB(data db.DBDocument) error {
 	if id := db.GetUUID(data[db.ID]); id != uuid.Nil {
 		u.Id = id
 	} else {

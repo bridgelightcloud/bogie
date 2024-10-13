@@ -73,13 +73,12 @@ func GetExampleEventArray(count int) []Event {
 	}
 	return evs
 }
-
-func (e Event) MarshalDynamoDB() (DBDocument, error) {
+func (e Event) MarshalDynamoDB() (db.DBDocument, error) {
 	if e.Id == uuid.Nil {
 		return nil, db.ErrBadDocID
 	}
 
-	data := DBDocument{
+	data := db.DBDocument{
 		db.ID: &dynamodb.AttributeValueMemberB{Value: e.Id[:]},
 	}
 
@@ -164,7 +163,7 @@ func (e Event) MarshalDynamoDB() (DBDocument, error) {
 	return data, nil
 }
 
-func (e *Event) UnmarshalDynamoDB(data DBDocument) error {
+func (e *Event) UnmarshalDynamoDB(data db.DBDocument) error {
 	if id := db.GetUUID(data["id"]); id != uuid.Nil {
 		e.Id = id
 	} else {
