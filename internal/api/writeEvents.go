@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/bridgelightcloud/bogie/internal/models"
+	"github.com/bridgelightcloud/bogie/internal/util"
 )
 
 type PutEventsRequest struct {
@@ -27,7 +28,7 @@ func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 		}
 	}
 
-	for _, chunk := range chunkifyEvents(evs) {
+	for _, chunk := range util.ChunkifySlice(util.ChunkifySliceParams[models.Event]{Models: evs}) {
 		println("Chunk size: ", len(chunk))
 		input := dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]types.WriteRequest{},
@@ -61,20 +62,4 @@ func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 		StatusCode: 200,
 		Body:       fmt.Sprintf("Events received: %d", len(evs)),
 	}
-}
-
-func chunkifyEvents(evs []models.Event) [][]models.Event {
-	chunkSize := 25
-	chunks := make([][]models.Event, 0)
-	for i := 0; i < len(evs); i += chunkSize {
-		end := i + chunkSize
-
-		if end > len(evs) {
-			end = len(evs)
-		}
-
-		chunks = append(chunks, evs[i:end])
-	}
-
-	return chunks
 }
