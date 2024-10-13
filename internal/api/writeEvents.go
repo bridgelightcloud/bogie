@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/bridgelightcloud/bogie/internal/db"
 	"github.com/bridgelightcloud/bogie/internal/models"
 	"github.com/bridgelightcloud/bogie/internal/util"
 )
@@ -28,7 +29,7 @@ func writeEvents(r PutEventsRequest) events.LambdaFunctionURLResponse {
 		}
 	}
 
-	for _, chunk := range util.ChunkifySlice(util.ChunkifySliceParams[models.Event]{Models: evs}) {
+	for _, chunk := range util.ChunkifySlice(evs, db.DynamoDBBatchWriteLimit) {
 		println("Chunk size: ", len(chunk))
 		input := dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]types.WriteRequest{},

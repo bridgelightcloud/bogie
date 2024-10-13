@@ -1,30 +1,25 @@
 package util
 
-import "github.com/bridgelightcloud/bogie/internal/models"
+import (
+	"math"
+)
 
-type ChunkifySliceParams[M models.Model] struct {
-	Models    []M
-	ChunkSize int
-}
-
-func ChunkifySlice[M models.Model](params ChunkifySliceParams[M]) [][]M {
-	if len(params.Models) == 0 {
-		return [][]M{}
+func ChunkifySlice[T any](items []T, chunkSize int) [][]T {
+	if len(items) <= chunkSize {
+		return [][]T{items}
 	}
 
-	if params.ChunkSize == 0 {
-		params.ChunkSize = 25
-	}
+	chunkCount := int(math.Ceil(float64(len(items)) / float64(chunkSize)))
+	chunks := make([][]T, chunkCount)
 
-	chunks := make([][]M, 0)
-	for i := 0; i < len(params.Models); i += params.ChunkSize {
-		end := i + params.ChunkSize
+	for i := 0; i < len(items); i += chunkSize {
+		end := i + chunkSize
 
-		if end > len(params.Models) {
-			end = len(params.Models)
+		if end > len(items) {
+			end = len(items)
 		}
 
-		chunks = append(chunks, params.Models[i:end])
+		chunks = append(chunks, items[i:end])
 	}
 
 	return chunks

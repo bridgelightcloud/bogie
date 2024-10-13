@@ -134,3 +134,8 @@ var (
 	ErrBadCarrier   = errors.New("bad carrier")
 	ErrBadUnitID    = errors.New("bad unit ID")
 )
+
+// DynamoDB Constants
+var (
+	DynamoDBBatchWriteLimit = 25
+)
