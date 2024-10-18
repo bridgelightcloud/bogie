@@ -19,7 +19,7 @@ var (
 	defaultUnitPosition  = 1
 	defaultDepartureStop = "Richmond"
 	defaultArrivalStop   = "Millbrae"
-	defaultNotes         = []string{
+	defaultEventNotes    = []string{
 		"Very Full",
 		"Stopped at 12th St. for 5 minutes",
 	}
@@ -48,7 +48,7 @@ func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
 		ArrivalStop:   defaultArrivalStop,
 		DepartureTime: &exTime,
 		ArrivalTime:   &exTime,
-		Notes:         defaultNotes,
+		Notes:         defaultEventNotes,
 	}
 }
 
@@ -85,7 +85,7 @@ func GetExampleEventDBDocument(id uuid.UUID, user uuid.UUID) db.DBDocument {
 		db.ArrivalStop:   &dynamodb.AttributeValueMemberS{Value: defaultArrivalStop},
 		db.DepartureTime: &dynamodb.AttributeValueMemberN{Value: exTime},
 		db.ArrivalTime:   &dynamodb.AttributeValueMemberN{Value: exTime},
-		db.Notes:         &dynamodb.AttributeValueMemberSS{Value: defaultNotes},
+		db.Notes:         &dynamodb.AttributeValueMemberSS{Value: defaultEventNotes},
 	}
 }
 

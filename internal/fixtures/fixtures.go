@@ -15,6 +15,14 @@ func GetTestUUID() uuid.UUID {
 	return uuid.MustParse(testUUIDString)
 }
 
+func GetTestUUIDBytes() []byte {
+	return GetUUIDBytes(GetTestUUID())
+}
+
+func GetUUIDBytes(u uuid.UUID) []byte {
+	return u[:]
+}
+
 // GetTestUUIDSlice returns a slce of size len composed of copies of
 // the test UUID 8d930d82-24e9-4fc1-824b-9e1253d4ee02
 func GetTestUUIDSlice(len int) []uuid.UUID {

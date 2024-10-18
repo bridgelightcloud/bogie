@@ -20,20 +20,6 @@ type Unit struct {
 	Notes     []string   `json:"notes,omitempty"`
 }
 
-func GetExampleUnit() Unit {
-	t := time.Now().Truncate(time.Second)
-
-	return Unit{
-		Id:        uuid.New(),
-		Type:      db.DocTypeUnit,
-		Status:    db.StatusActive,
-		CreatedAt: &t,
-		UpdatedAt: &t,
-		Agency:    "BART",
-		UnitID:    "1234",
-	}
-}
-
 func (u Unit) MarshalDynamoDB() (db.DBDocument, error) {
 	if u.Id == uuid.Nil {
 		return nil, db.ErrBadDocID
