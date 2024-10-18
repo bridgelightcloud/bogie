@@ -29,50 +29,6 @@ type Event struct {
 	Notes         []string   `json:"notes,omitempty"`         // n
 }
 
-func GetExampleEvent(id uuid.UUID, user uuid.UUID) Event {
-	if id == uuid.Nil {
-		id = uuid.New()
-	}
-
-	if user == uuid.Nil {
-		user = uuid.New()
-	}
-
-	extime := time.Now().Truncate(time.Second)
-	excount := 6
-	exposition := 1
-
-	return Event{
-		Id:            id,
-		Type:          db.DocTypeEvent,
-		Status:        db.StatusActive,
-		CreatedAt:     &extime,
-		UpdatedAt:     &extime,
-		User:          user,
-		Agency:        "BART",
-		Route:         "Red",
-		Trip:          "123",
-		UnitID:        "3095",
-		UnitCount:     &excount,
-		UnitPosition:  &exposition,
-		DepartureStop: "Richmond",
-		ArrivalStop:   "Millbrae",
-		DepartureTime: &extime,
-		ArrivalTime:   &extime,
-		Notes: []string{
-			"Very Full",
-			"Stopped at 12th St. for 5 minutes",
-		},
-	}
-}
-
-func GetExampleEventArray(count int) []Event {
-	evs := make([]Event, count)
-	for i := 0; i < count; i++ {
-		evs[i] = GetExampleEvent(uuid.Nil, uuid.Nil)
-	}
-	return evs
-}
 func (e Event) MarshalDynamoDB() (db.DBDocument, error) {
 	if e.Id == uuid.Nil {
 		return nil, db.ErrBadDocID
