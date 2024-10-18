@@ -36,7 +36,7 @@ func TestGetExampleEventArray(t *testing.T) {
 	assert.Len(evts, 5)
 }
 
-func TestMarshalDynamoDB(t *testing.T) {
+func TestEventMarshalDynamoDB(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
@@ -53,7 +53,7 @@ func TestMarshalDynamoDB(t *testing.T) {
 	assert.Equal(dbEvt["t"], &dynamodb.AttributeValueMemberB{Value: typeUUID[:]})
 }
 
-func TestMarshDynamoDBErr(t *testing.T) {
+func TestEventMarshDynamoDBErr(t *testing.T) {
 	t.Parallel()
 	tt := []struct {
 		name          string
@@ -130,7 +130,7 @@ func TestMarshDynamoDBErr(t *testing.T) {
 	}
 }
 
-func TestUnmarshalDynamoDB(t *testing.T) {
+func TestEventUnmarshalDynamoDB(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
@@ -145,4 +145,67 @@ func TestUnmarshalDynamoDB(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(id, evt.Id)
 	assert.Equal(user, evt.User)
+}
+
+func TestEventUnmarshalDynamoDBErr(t *testing.T) {
+	t.Parallel()
+
+	tt := []struct {
+		name          string
+		doc           db.DBDocument
+		expectedError error
+	}{
+		{
+			name:          "ErrBadDocID",
+			doc:           db.DBDocument{},
+			expectedError: db.ErrBadDocID,
+		},
+		{
+			name: "ErrBadDocType",
+			doc: db.DBDocument{
+				db.ID: &dynamodb.AttributeValueMemberB{Value: fixtures.GetTestUUIDBytes()},
+			},
+			expectedError: db.ErrBadDocType,
+		},
+		{
+			name: "ErrBadDocStatus",
+			doc: db.DBDocument{
+				db.ID:   &dynamodb.AttributeValueMemberB{Value: fixtures.GetTestUUIDBytes()},
+				db.Type: &dynamodb.AttributeValueMemberB{Value: fixtures.GetUUIDBytes(db.NameMap[db.DocTypeEvent])},
+			},
+			expectedError: db.ErrBadDocStatus,
+		},
+		{
+			name: "ErrBadCreatedAt",
+			doc: db.DBDocument{
+				db.ID:     &dynamodb.AttributeValueMemberB{Value: fixtures.GetTestUUIDBytes()},
+				db.Type:   &dynamodb.AttributeValueMemberB{Value: fixtures.GetUUIDBytes(db.NameMap[db.DocTypeEvent])},
+				db.Status: &dynamodb.AttributeValueMemberB{Value: fixtures.GetUUIDBytes(db.NameMap[db.StatusActive])},
+			},
+			expectedError: db.ErrBadCreatedAt,
+		},
+		{
+			name: "ErrBadUpdatedAt",
+			doc: db.DBDocument{
+				db.ID:        &dynamodb.AttributeValueMemberB{Value: fixtures.GetTestUUIDBytes()},
+				db.Type:      &dynamodb.AttributeValueMemberB{Value: fixtures.GetUUIDBytes(db.NameMap[db.DocTypeEvent])},
+				db.Status:    &dynamodb.AttributeValueMemberB{Value: fixtures.GetUUIDBytes(db.NameMap[db.StatusActive])},
+				db.CreatedAt: &dynamodb.AttributeValueMemberN{Value: "1234567890"},
+			},
+			expectedError: db.ErrBadUpdatedAt,
+		},
+	}
+
+	for _, tc := range tt {
+		tc := tc
+		t.Run(t.Name(), func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+
+			evt := Event{}
+			err := evt.UnmarshalDynamoDB(tc.doc)
+
+			assert.Equal(tc.expectedError, err)
+		})
+	}
 }
