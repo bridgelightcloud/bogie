@@ -60,6 +60,7 @@ const (
 	UserID        = "uid"
 )
 
+// Type Accessors
 func GetUUID(data dynamodb.AttributeValue) uuid.UUID {
 	if data == nil {
 		return uuid.Nil
@@ -67,7 +68,7 @@ func GetUUID(data dynamodb.AttributeValue) uuid.UUID {
 
 	if id, ok := data.(*dynamodb.AttributeValueMemberB); ok {
 		value, err := uuid.FromBytes(id.Value)
-		if err == nil {
+		if err != nil {
 			return uuid.Nil
 		}
 		return value
