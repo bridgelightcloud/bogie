@@ -11,5 +11,13 @@
 	},
 	"containerEnv": {
 		"AWS_PROFILE": "bogie"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"Github.copilot",
+				"GitHub.copilot-chat"
+			]
+		}
 	}
 }
