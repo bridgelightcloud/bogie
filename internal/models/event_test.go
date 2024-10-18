@@ -19,6 +19,12 @@ func TestGetExampleEvent(t *testing.T) {
 	assert.True(evt.Id != uuid.Nil)
 	assert.True(evt.User != uuid.Nil)
 	assert.Equal(evt.Type, db.DocTypeEvent)
+
+	evt = GetExampleEvent(fixtures.GetTestUUID(), fixtures.GetTestUUID())
+
+	assert.Equal(evt.Id, fixtures.GetTestUUID())
+	assert.Equal(evt.User, fixtures.GetTestUUID())
+	assert.Equal(evt.Type, db.DocTypeEvent)
 }
 
 func TestGetExampleEventArray(t *testing.T) {
@@ -122,4 +128,21 @@ func TestMarshDynamoDBErr(t *testing.T) {
 			assert.Equal(tc.expectedError, err)
 		})
 	}
+}
+
+func TestUnmarshalDynamoDB(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+
+	id := fixtures.GetTestUUID()
+	user := fixtures.GetTestUUID()
+	doc := GetExampleEventDBDocument(id, user)
+
+	evt := Event{}
+	err := evt.UnmarshalDynamoDB(doc)
+
+	assert.Nil(err)
+	assert.Equal(id, evt.Id)
+	assert.Equal(user, evt.User)
 }
