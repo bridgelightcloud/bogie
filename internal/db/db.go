@@ -60,7 +60,7 @@ const (
 	UserID        = "uid"
 )
 
-// Type Accessors
+// Deserializers
 func GetUUID(data dynamodb.AttributeValue) uuid.UUID {
 	if data == nil {
 		return uuid.Nil
@@ -137,7 +137,7 @@ var (
 )
 
 // DynamoDB Constants
-var (
+const (
 	DynamoDBBatchWriteLimit = 25
 )
 
