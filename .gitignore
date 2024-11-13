@@ -155,3 +155,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# repo-specific
+pkg/gtfs/main/gtfs_files
+tools/gliderstack
