@@ -4,6 +4,9 @@ import (
 	"archive/zip"
 	"encoding/csv"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -30,88 +33,164 @@ var (
 	ErrInvalidStopPlatformCode       = fmt.Errorf("invalid stop platform code")
 )
 
+type StopLocationType int
+
+var (
+	StopLocationTypeStopPlatform StopLocationType = 0
+	StopLocationTypeStation      StopLocationType = 1
+	StopLocationTypeEntranceExit StopLocationType = 2
+	StopLocationTypeGenericNode  StopLocationType = 3
+	StopLocationTypeBoardingArea StopLocationType = 4
+)
+
+type (
+	Latitude  float64
+	Longitude float64
+)
+
 type Stop struct {
-	ID                 string   `json:"stopId,omitempty" csv:"stop_id,omitempty"`
-	Code               string   `json:"stopCode,omitempty" csv:"stop_code,omitempty"`
-	Name               string   `json:"stopName" csv:"stop_name"`
-	TTSName            string   `json:"TTSStopName" csv:"tts_stop_name"`
-	Desc               string   `json:"stopDesc" csv:"stop_desc"`
-	Lat                string   `json:"stopLat" csv:"stop_lat"`
-	Lon                string   `json:"stopLon" csv:"stop_lon"`
-	ZoneID             string   `json:"zoneId" csv:"zone_id"`
-	URL                string   `json:"stopUrl" csv:"stop_url"`
-	LocationType       string   `json:"locationType" csv:"location_type"`
-	ParentStation      string   `json:"parentStation" csv:"parent_station"`
-	Timezone           string   `json:"stopTimezone" csv:"stop_timezone"`
-	WheelchairBoarding string   `json:"wheelchairBoarding" csv:"wheelchair_boarding"`
-	LevelID            string   `json:"levelId" csv:"level_id"`
-	PlatformCode       string   `json:"platformCode" csv:"platform_code"`
-	Unused             []string `json:"-" csv:"-"`
+	ID                 string           `json:"stopId"`
+	Code               string           `json:"stopCode,omitempty"`
+	Name               string           `json:"stopName"`
+	TTSName            string           `json:"TTSStopName,omitempty"`
+	Desc               string           `json:"stopDesc,omitempty"`
+	Lat                *Latitude        `json:"stopLat"`
+	Lon                *Longitude       `json:"stopLon"`
+	ZoneID             string           `json:"zoneId,omitempty"`
+	URL                string           `json:"stopUrl,omitempty"`
+	LocationType       StopLocationType `json:"locationType,omitempty"`
+	ParentStation      string           `json:"parentStation"`
+	Timezone           string           `json:"stopTimezone,omitempty"`
+	WheelchairBoarding string           `json:"wheelchairBoarding,omitempty"`
+	LevelID            string           `json:"levelId,omitempty"`
+	PlatformCode       string           `json:"platformCode,omitempty"`
+	unused             []string
+
+	children map[string]bool
 }
 
-func parseStops(file *zip.File) ([]Stop, error) {
+func (s *GTFSSchedule) parseStopsData(file *zip.File) error {
+	s.Stops = make(map[string]Stop)
+
+	cp := make(map[string]string)
 	rc, err := file.Open()
 	if err != nil {
-		return []Stop{}, err
+		return err
 	}
 	defer rc.Close()
 
-	lines, err := csv.NewReader(rc).ReadAll()
-	if len(lines) == 0 {
-		return []Stop{}, ErrEmptyStopsFile
+	r := csv.NewReader(rc)
+
+	headers, err := r.Read()
+	if err == io.EOF {
+		return ErrEmptyStopsFile
+	}
+	if err != nil {
+		return err
 	}
 
-	headers := lines[0]
-	if err := validateStopsHeader(headers); err != nil {
-		return []Stop{}, err
-	}
+	var record []string
+	for {
+		record, err = r.Read()
+		if err != nil {
+			break
+		}
 
-	records := lines[1:]
-	if len(records) == 0 {
-		return []Stop{}, ErrNoStopsRecords
-	}
+		if len(record) == 0 {
+			continue
+		}
 
-	stops := make([]Stop, len(records))
-	for i, field := range headers {
-		for j, record := range records {
-			switch field {
+		if len(record) > len(headers) {
+			return fmt.Errorf("record has too many columns")
+		}
+
+		var stop Stop
+		for j, value := range record {
+			value = strings.TrimSpace(value)
+			switch headers[j] {
 			case "stop_id":
-				stops[j].ID = record[i]
+				stop.ID = value
 			case "stop_code":
-				stops[j].Code = record[i]
+				stop.Code = value
 			case "stop_name":
-				stops[j].Name = record[i]
+				stop.Name = value
 			case "tts_stop_name":
-				stops[j].TTSName = record[i]
+				stop.TTSName = value
 			case "stop_desc":
-				stops[j].Desc = record[i]
+				stop.Desc = value
 			case "stop_lat":
-				stops[j].Lat = record[i]
+				l, err := strconv.ParseFloat(value, 64)
+				if err != nil {
+					fmt.Printf("err: %s\n", err.Error())
+					return ErrInvalidStopLat
+				}
+				p := Latitude(l)
+				stop.Lat = &p
 			case "stop_lon":
-				stops[j].Lon = record[i]
+				l, err := strconv.ParseFloat(value, 64)
+				if err != nil {
+					return ErrInvalidStopLon
+				}
+				p := Longitude(l)
+				stop.Lon = &p
 			case "zone_id":
-				stops[j].ZoneID = record[i]
+				stop.ZoneID = value
 			case "stop_url":
-				stops[j].URL = record[i]
+				stop.URL = value
 			case "location_type":
-				stops[j].LocationType = record[i]
+				if value != "" {
+					lt, err := strconv.Atoi(value)
+					if err != nil {
+						return ErrInvalidStopLocationType
+					}
+					stop.LocationType = StopLocationType(lt)
+				}
 			case "parent_station":
-				stops[j].ParentStation = record[i]
+				stop.ParentStation = value
 			case "stop_timezone":
-				stops[j].Timezone = record[i]
+				stop.Timezone = value
 			case "wheelchair_boarding":
-				stops[j].WheelchairBoarding = record[i]
+				stop.WheelchairBoarding = value
 			case "level_id":
-				stops[j].LevelID = record[i]
+				stop.LevelID = value
 			case "platform_code":
-				stops[j].PlatformCode = record[i]
+				stop.PlatformCode = value
 			default:
-				stops[j].Unused = append(stops[j].Unused, record[i])
+				stop.unused = append(stop.unused, value)
 			}
+		}
+
+		if err := stop.validateStop(); err != nil {
+			return err
+		}
+
+		s.Stops[stop.ID] = stop
+
+		if stop.ParentStation != "" {
+			cp[stop.ID] = stop.ParentStation
 		}
 	}
 
-	return stops, nil
+	if err != io.EOF {
+		return err
+	}
+
+	if len(s.Stops) == 0 {
+		return ErrNoStopsRecords
+	}
+
+	for id, parentId := range cp {
+		if p, ok := s.Stops[parentId]; ok {
+			if p.children == nil {
+				p.children = make(map[string]bool)
+			}
+			p.children[id] = true
+		} else {
+			return fmt.Errorf("Parent stop %s for stop %s not found", parentId, id)
+		}
+	}
+
+	return nil
 }
 
 func validateStopsHeader(fields []string) error {
@@ -140,19 +219,60 @@ func validateStopsHeader(fields []string) error {
 	return nil
 }
 
-func (s Stop) validateStop() {
+func (s Stop) validateStop() error {
+	if s.ID == "" {
+		return ErrInvalidStopID
+	}
 
-}
-
-func buildStopHierarchy(stops []Stop) map[string][]Stop {
-	hierarchy := make(map[string][]Stop)
-	for _, stop := range stops {
-		if stop.ParentStation != "" {
-			if _, ok := hierarchy[stop.ParentStation]; !ok {
-				hierarchy[stop.ParentStation] = []Stop{}
-			}
-			hierarchy[stop.ParentStation] = append(hierarchy[stop.ParentStation], stop)
+	if s.Name == "" {
+		rlt := map[StopLocationType]bool{
+			StopLocationTypeStopPlatform: true,
+			StopLocationTypeStation:      true,
+			StopLocationTypeEntranceExit: true,
+		}
+		if _, ok := rlt[s.LocationType]; ok {
+			fmt.Println(s)
+			return fmt.Errorf("Invalid stop name \"%s\" for location type %d\n", s.Name, s.LocationType)
 		}
 	}
-	return hierarchy
+
+	if s.Lat == nil {
+		rlt := map[StopLocationType]bool{
+			StopLocationTypeStopPlatform: true,
+			StopLocationTypeStation:      true,
+			StopLocationTypeEntranceExit: true,
+		}
+		if _, ok := rlt[s.LocationType]; ok {
+			fmt.Printf("invalid latitude %f for location type %d\n", *s.Lat, *&s.LocationType)
+			return ErrInvalidStopLat
+		}
+	}
+
+	if s.Lon == nil {
+		rlt := map[StopLocationType]bool{
+			StopLocationTypeStopPlatform: true,
+			StopLocationTypeStation:      true,
+			StopLocationTypeEntranceExit: true,
+		}
+		if _, ok := rlt[s.LocationType]; ok {
+			return ErrInvalidStopLon
+		}
+	}
+
+	if s.ParentStation == "" {
+		rlt := map[StopLocationType]bool{
+			StopLocationTypeEntranceExit: true,
+			StopLocationTypeGenericNode:  true,
+			StopLocationTypeBoardingArea: true,
+		}
+		if _, ok := rlt[s.LocationType]; ok {
+			return ErrInvalidStopParentStation
+		}
+	} else {
+		if s.LocationType == StopLocationTypeStation {
+			return ErrInvalidStopParentStation
+		}
+	}
+
+	return nil
 }

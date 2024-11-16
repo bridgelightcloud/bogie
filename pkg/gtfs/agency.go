@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"encoding/csv"
 	"fmt"
+	"io"
+	"strings"
 )
 
 var (
@@ -13,70 +15,89 @@ var (
 )
 
 type Agency struct {
-	ID          string   `json:"agencyId,omitempty" csv:"agency_id,omitempty"`
-	Name        string   `json:"agencyName" csv:"agency_name"`
-	URL         string   `json:"agencyUrl" csv:"agency_url"`
-	Timezone    string   `json:"agencyTimezone" csv:"agency_timezone"`
-	Lang        string   `json:"agencyLang,omitempty" csv:"agency_lang,omitempty"`
-	Phone       string   `json:"agencyPhone,omitempty" csv:"agency_phone,omitempty"`
-	FareURL     string   `json:"agencyFareUrl,omitempty" csv:"agency_fare_url,omitempty"`
-	AgencyEmail string   `json:"agencyEmail,omitempty" csv:"agency_email,omitempty"`
-	Unused      []string `json:"-" csv:"-"`
+	ID          string `json:"agencyId,omitempty"`
+	Name        string `json:"agencyName"`
+	URL         string `json:"agencyUrl"`
+	Timezone    string `json:"agencyTimezone"`
+	Lang        string `json:"agencyLang,omitempty"`
+	Phone       string `json:"agencyPhone,omitempty"`
+	FareURL     string `json:"agencyFareUrl,omitempty"`
+	AgencyEmail string `json:"agencyEmail,omitempty"`
+	unused      []string
+
+	route []string
 }
 
-func parseAgencies(file *zip.File) ([]Agency, error) {
+func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
+	s.Agencies = map[string]Agency{}
+
 	rc, err := file.Open()
 	if err != nil {
-		return []Agency{}, err
+		return err
 	}
 	defer rc.Close()
 
-	lines, err := csv.NewReader(rc).ReadAll()
-	if len(lines) == 0 {
-		return []Agency{}, ErrEmptyAgencyFile
+	r := csv.NewReader(rc)
+
+	headers, err := r.Read()
+	if err == io.EOF {
+		return ErrEmptyAgencyFile
+	}
+	if err != nil {
+		return err
 	}
 
-	headers := lines[0]
-	if err := validateAgenciesHeader(headers); err != nil {
-		return []Agency{}, err
-	}
+	var record []string
+	for {
+		record, err = r.Read()
+		if err != nil {
+			break
+		}
 
-	records := lines[1:]
-	if len(records) == 0 {
-		return []Agency{}, ErrNoAgencyRecords
-	}
+		if len(record) == 0 {
+			continue
+		}
 
-	agencies := make([]Agency, len(records))
-	for i, field := range headers {
-		for j, record := range records {
-			switch field {
+		if len(record) > len(headers) {
+			return fmt.Errorf("record has too many columns")
+		}
+
+		var agency Agency
+		for j, value := range record {
+			value = strings.TrimSpace(value)
+			switch headers[j] {
 			case "agency_id":
-				agencies[j].ID = record[i]
+				agency.ID = value
 			case "agency_name":
-				agencies[j].Name = record[i]
+				agency.Name = value
 			case "agency_url":
-				agencies[j].URL = record[i]
+				agency.URL = value
 			case "agency_timezone":
-				agencies[j].Timezone = record[i]
+				agency.Timezone = value
 			case "agency_lang":
-				agencies[j].Lang = record[i]
+				agency.Lang = value
 			case "agency_phone":
-				agencies[j].Phone = record[i]
+				agency.Phone = value
 			case "agency_fare_url":
-				agencies[j].FareURL = record[i]
+				agency.FareURL = value
 			case "agency_email":
-				agencies[j].AgencyEmail = record[i]
+				agency.AgencyEmail = value
 			default:
-				if agencies[j].Unused == nil {
-					agencies[j].Unused = []string{record[i]}
-				} else {
-					agencies[j].Unused = append(agencies[j].Unused, record[i])
-				}
+				agency.unused = append(agency.unused, value)
 			}
 		}
+		s.Agencies[agency.ID] = agency
 	}
 
-	return agencies, nil
+	if err != io.EOF {
+		return err
+	}
+
+	if len(s.Agencies) == 0 {
+		return ErrNoAgencyRecords
+	}
+
+	return nil
 }
 
 func validateAgenciesHeader(fields []string) error {
