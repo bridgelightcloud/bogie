@@ -1,5 +1,7 @@
 # --- Bogie ---
 scratch/
+tools/gliderstack
+tools/gtfs/gtfs_files/*
 
 # --- Go ---
 # https://github.com/github/gitignore/blob/7b22f8ab6c85b4ef1469d72a8ba96462e2a44853/Go.gitignore
@@ -156,6 +158,4 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# repo-specific
-pkg/gtfs/main/gtfs_files
-tools/gliderstack
+.DS_Store
