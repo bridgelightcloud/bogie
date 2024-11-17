@@ -8,21 +8,17 @@ import (
 	"time"
 )
 
-type Color string
-
 var validColor = regexp.MustCompile(`(?i)^[a-f\d]{6}$`)
 
-func (c *Color) parseColor(v string) error {
+func ParseColor(v string, c *string) error {
 	f := strings.TrimSpace(v)
 	if !validColor.MatchString(f) {
 		return fmt.Errorf("invalid color: %s", v)
 	}
 
-	*c = Color(strings.ToUpper(f))
+	*c = strings.ToUpper(f)
 	return nil
 }
-
-type currencyCode string
 
 var validCurrencyCodes = map[string]int{
 	"AED": 2,
@@ -188,23 +184,21 @@ var validCurrencyCodes = map[string]int{
 	"ZWG": 2,
 }
 
-func (c *currencyCode) parseCurrencyCode(v string) error {
+func ParseCurrencyCode(v string, c *string) error {
 	f := strings.TrimSpace(v)
 	f = strings.ToUpper(f)
 	if _, ok := validCurrencyCodes[f]; !ok {
 		return fmt.Errorf("invalid currency code: %s", v)
 	}
 
-	*c = currencyCode(f)
+	*c = f
 	return nil
 }
-
-type Time time.Time
 
 var validDate = regexp.MustCompile(`^\d{8}$`)
 var dateFormat = "20060102"
 
-func (t *Time) parse(v string) error {
+func ParseDate(v string, t *time.Time) error {
 	f := strings.TrimSpace(v)
 	if !validDate.MatchString(f) {
 		return fmt.Errorf("invalid date format: %s", v)
@@ -215,74 +209,116 @@ func (t *Time) parse(v string) error {
 		return fmt.Errorf("invalid date value: %s", v)
 	}
 
-	*t = Time(p)
+	*t = p
 	return nil
 }
 
-type Enum int
+var validTime = regexp.MustCompile(`^\d{1,2}\:\d{2}\:\d{2}$`)
+var timeFormat = "15:04:05"
+
+func ParseTime(v string, t *time.Time) error {
+	f := strings.TrimSpace(v)
+	if !validTime.MatchString(f) {
+		return fmt.Errorf("invalid time format: %s", v)
+	}
+
+	p, err := time.Parse(timeFormat, f)
+	if err != nil {
+		return fmt.Errorf("invalid time value: %s, %s", v, err)
+	}
+
+	*t = p
+	return nil
+}
+
+type enumBounds struct {
+	L int
+	U int
+}
 
 var (
-	Availability int  = 1
-	Available    Enum = 0
-	Unavailable  Enum = 1
+	Availability enumBounds = enumBounds{0, 1}
+	Available    int        = 0
+	Unavailable  int        = 1
 
-	Accessibility          int  = 2
-	UnknownAccessibility   Enum = 0
-	AccessibeForAtLeastOne Enum = 1
-	NotAccessible          Enum = 2
+	BikesAllowed                 enumBounds = enumBounds{0, 2}
+	NoInfo                       int        = 0
+	AtLeastOneBicycleAccomodated int        = 1
+	NoBicyclesAllowed            int        = 2
 
-	ContinuousPickup   int  = 3
-	ContinuousDropOff  int  = 3
-	DropOffType        int  = 3
-	PickupType         int  = 3
-	RegularlyScheduled Enum = 0
-	NoneAvailable      Enum = 1
-	MustPhoneAgency    Enum = 2
-	MustCoordinate     Enum = 3
+	ContinuousPickup   enumBounds = enumBounds{0, 3}
+	ContinuousDropOff  enumBounds = enumBounds{0, 3}
+	DropOffType        enumBounds = enumBounds{0, 3}
+	PickupType         enumBounds = enumBounds{0, 3}
+	RegularlyScheduled int        = 0
+	NoneAvailable      int        = 1
+	MustPhoneAgency    int        = 2
+	MustCoordinate     int        = 3
 
-	Timepoint       int  = 1
-	ApproximateTime Enum = 0
-	ExactTime       Enum = 1
+	DirectionID       enumBounds = enumBounds{0, 1}
+	OneDirection      int        = 0
+	OppositeDirection int        = 1
+
+	ExceptionType enumBounds = enumBounds{1, 2}
+	Added         int        = 1
+	Removed       int        = 2
+
+	Timepoint       enumBounds = enumBounds{0, 1}
+	ApproximateTime int        = 0
+	ExactTime       int        = 1
+
+	LocationType enumBounds = enumBounds{0, 4}
+	Platform     int        = 0
+	Station      int        = 1
+	EntranceExit int        = 2
+	GenericNode  int        = 3
+	BoardingArea int        = 4
+
+	WheelchairAccessible            enumBounds = enumBounds{0, 2}
+	UnknownAccessibility            int        = 0
+	AtLeastOneWheelchairAccomodated int        = 1
+	NoWheelchairsAccomodated        int        = 2
 )
 
-func (e *Enum) Parse(v string, u int) error {
+func ParseEnum(v string, b enumBounds, e *int) error {
 	f := strings.TrimSpace(v)
 	i, err := strconv.Atoi(f)
 	if err != nil {
 		return fmt.Errorf("invalid enum value: %s", v)
 	}
 
-	if i < 0 || i > u {
+	if i < b.L || i > b.U {
 		return fmt.Errorf("enum out of bounds: %d", i)
 	}
 
-	*e = Enum(i)
+	*e = i
 	return nil
 }
 
-type Int int
-
-func (i *Int) Parse(v string) error {
+func ParseInt(v string, i *int) error {
 	f := strings.TrimSpace(v)
 	p, err := strconv.Atoi(f)
 	if err != nil {
 		return fmt.Errorf("invalid integer value: %s", v)
 	}
-	*i = Int(p)
+	*i = p
 	return nil
 }
 
-type Float64 float64
-
-func (fl *Float64) Parse(v string) error {
+func ParseFloat(v string, fl *float64) error {
 	f := strings.TrimSpace(v)
 	p, err := strconv.ParseFloat(f, 64)
 	if err != nil {
 		return fmt.Errorf("invalid float value: %s", v)
 	}
 
-	*fl = Float64(p)
+	*fl = p
 	return nil
+}
+
+func ParseString(v string, s *string) {
+	f := strings.TrimSpace(v)
+	*s = f
 }
 
 type errorList []error
@@ -295,10 +331,42 @@ func (e *errorList) add(err error) error {
 	return err
 }
 
-type String string
+type Coords struct {
+	Lat float64 `json:"lat"`
+	Lon float64 `json:"lon"`
+}
 
-func (s *String) Parse(v string) error {
+func ParseLat(v string, c *Coords) error {
 	f := strings.TrimSpace(v)
-	*s = String(f)
+	p, err := strconv.ParseFloat(f, 64)
+	if err != nil {
+		return fmt.Errorf("invalid latitude value: %s", v)
+	}
+
+	if p < -90 || p > 90 {
+		return fmt.Errorf("latitude out of bounds: %f", p)
+	}
+
+	c.Lat = p
 	return nil
+}
+
+func ParseLon(v string, c *Coords) error {
+	f := strings.TrimSpace(v)
+	p, err := strconv.ParseFloat(f, 64)
+	if err != nil {
+		return fmt.Errorf("invalid longitude value: %s", v)
+	}
+
+	if p < -180 || p > 180 {
+		return fmt.Errorf("longitude out of bounds: %f", p)
+	}
+
+	c.Lon = p
+	return nil
+}
+
+func appendParsedString(v string, s *[]string) {
+	f := strings.TrimSpace(v)
+	*s = append(*s, f)
 }

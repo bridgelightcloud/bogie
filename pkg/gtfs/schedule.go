@@ -38,15 +38,12 @@ func OpenScheduleFromFile(fn string) (GTFSSchedule, error) {
 	}
 	defer r.Close()
 
-	sd, err := parseSchedule(r)
-	if err != nil {
-		return GTFSSchedule{}, err
-	}
+	sd := parseSchedule(r)
 
 	return sd, nil
 }
 
-func parseSchedule(r *zip.ReadCloser) (GTFSSchedule, error) {
+func parseSchedule(r *zip.ReadCloser) GTFSSchedule {
 	s := GTFSSchedule{}
 
 	files := make(map[string]*zip.File)
@@ -55,45 +52,45 @@ func parseSchedule(r *zip.ReadCloser) (GTFSSchedule, error) {
 	}
 
 	if f, ok := files["agency.txt"]; !ok {
-		return s, ErrMissingAgency
+		s.errors.add(ErrMissingAgency)
 	} else if err := s.parseAgencies(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	if f, ok := files["stops.txt"]; !ok {
-		return s, ErrMissingStops
+		s.errors.add(ErrMissingStops)
 	} else if err := s.parseStopsData(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	if f, ok := files["routes.txt"]; !ok {
-		return s, ErrMissingRoutes
+		s.errors.add(ErrMissingRoutes)
 	} else if err := s.parseRoutes(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	if f, ok := files["calendar.txt"]; !ok {
-		return s, ErrMissingCalendar
+		s.errors.add(ErrMissingCalendar)
 	} else if err := s.parseCalendar(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	if f, ok := files["calendar_dates.txt"]; !ok {
-		return s, ErrMissingCalendarDates
+		s.errors.add(ErrMissingCalendarDates)
 	} else if err := s.parseCalendarDates(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	if f, ok := files["trips.txt"]; !ok {
-		return s, ErrMissingTrips
+		s.errors.add(ErrMissingTrips)
 	} else if err := s.parseTrips(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	if f, ok := files["stop_times.txt"]; !ok {
-		return s, ErrMissingStopTimes
+		s.errors.add(ErrMissingStopTimes)
 	} else if err := s.parseStopTimes(f); err != nil {
-		return s, err
+		s.errors.add(err)
 	}
 
 	// f, ok = files["trips.txt"]
@@ -122,5 +119,5 @@ func parseSchedule(r *zip.ReadCloser) (GTFSSchedule, error) {
 	// f, ok = files["feed_info.txt"]
 	// f, ok = files["attributions.txt"]
 
-	return s, nil
+	return s
 }

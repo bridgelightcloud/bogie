@@ -15,17 +15,17 @@ var (
 )
 
 type Agency struct {
-	ID          String `json:"agencyId,omitempty"`
-	Name        String `json:"agencyName"`
-	URL         String `json:"agencyUrl"`
-	Timezone    String `json:"agencyTimezone"`
-	Lang        String `json:"agencyLang,omitempty"`
-	Phone       String `json:"agencyPhone,omitempty"`
-	FareURL     String `json:"agencyFareUrl,omitempty"`
-	AgencyEmail String `json:"agencyEmail,omitempty"`
-	unused      []String
+	ID          string `json:"agencyId,omitempty"`
+	Name        string `json:"agencyName"`
+	URL         string `json:"agencyUrl"`
+	Timezone    string `json:"agencyTimezone"`
+	Lang        string `json:"agencyLang,omitempty"`
+	Phone       string `json:"agencyPhone,omitempty"`
+	FareURL     string `json:"agencyFareUrl,omitempty"`
+	AgencyEmail string `json:"agencyEmail,omitempty"`
+	unused      []string
 
-	route []String
+	route []string
 }
 
 func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
@@ -33,7 +33,7 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 
 	rc, err := file.Open()
 	if err != nil {
-		s.errors = append(s.errors, fmt.Errorf("error opening agency file: %w", err))
+		s.errors.add(fmt.Errorf("error opening agency file: %w", err))
 		return err
 	}
 	defer rc.Close()
@@ -42,11 +42,11 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		s.errors = append(s.errors, ErrEmptyAgencyFile)
+		s.errors.add(ErrEmptyAgencyFile)
 		return ErrEmptyAgencyFile
 	}
 	if err != nil {
-		s.errors = append(s.errors, err)
+		s.errors.add(err)
 		return err
 	}
 
@@ -58,12 +58,12 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 		}
 
 		if len(record) == 0 {
-			s.errors = append(s.errors, fmt.Errorf("empty agency record"))
+			s.errors.add(fmt.Errorf("empty agency record"))
 			continue
 		}
 
 		if len(record) > len(headers) {
-			s.errors = append(s.errors, fmt.Errorf("record has too many columns"))
+			s.errors.add(fmt.Errorf("record has too many columns"))
 		}
 
 		var a Agency
@@ -71,51 +71,35 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 			v = strings.TrimSpace(v)
 			switch headers[j] {
 			case "agency_id":
-				if err := a.ID.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_id: %w", err))
-				}
+				ParseString(v, &a.ID)
 			case "agency_name":
-				if err := a.Name.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_name: %w", err))
-				}
+				ParseString(v, &a.Name)
 			case "agency_url":
-				if err := a.URL.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_url: %w", err))
-				}
+				ParseString(v, &a.URL)
 			case "agency_timezone":
-				if err := a.Timezone.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_timezone: %w", err))
-				}
+				ParseString(v, &a.Timezone)
 			case "agency_lang":
-				if err := a.Lang.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_lang: %w", err))
-				}
+				ParseString(v, &a.Lang)
 			case "agency_phone":
-				if err := a.Phone.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_phone: %w", err))
-				}
+				ParseString(v, &a.Phone)
 			case "agency_fare_url":
-				if err := a.FareURL.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_fare_url: %w", err))
-				}
+				ParseString(v, &a.FareURL)
 			case "agency_email":
-				if err := a.AgencyEmail.Parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid agency_email: %w", err))
-				}
+				ParseString(v, &a.AgencyEmail)
 			default:
-				a.unused = append(a.unused, String(strings.TrimSpace(v)))
+				a.unused = append(a.unused, strings.TrimSpace(v))
 			}
 		}
-		s.Agencies[string(a.ID)] = a
+		s.Agencies[a.ID] = a
 	}
 
 	if err != io.EOF {
-		s.errors = append(s.errors, err)
+		s.errors.add( err)
 		return err
 	}
 
 	if len(s.Agencies) == 0 {
-		s.errors = append(s.errors, ErrNoAgencyRecords)
+		s.errors.add(ErrNoAgencyRecords)
 		return ErrNoAgencyRecords
 	}
 

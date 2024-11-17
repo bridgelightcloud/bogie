@@ -71,7 +71,6 @@ func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
 
 		var route Route
 		for j, value := range record {
-			value = strings.TrimSpace(value)
 			switch headers[j] {
 			case "route_id":
 				if value == "" {
@@ -116,7 +115,7 @@ func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
 				if a, ok := s.Agencies[route.AgencyID]; !ok {
 					return fmt.Errorf("route %s references unknown agency %s", route.ID, route.AgencyID)
 				} else {
-					a.route = append(a.route, String(route.ID))
+					a.route = append(a.route, strings.TrimSpace(route.ID))
 				}
 			}
 		}

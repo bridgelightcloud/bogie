@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"time"
 )
 
 var (
@@ -14,9 +15,9 @@ var (
 )
 
 type CalendarDate struct {
-	ServiceID     string `json:"serviceId"`
-	Date          Time   `json:"date"`
-	ExceptionType Enum   `json:"exceptionType"`
+	ServiceID     string    `json:"serviceId"`
+	Date          time.Time `json:"date"`
+	ExceptionType int       `json:"exceptionType"`
 
 	unused []string
 }
@@ -26,7 +27,7 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 
 	rc, err := file.Open()
 	if err != nil {
-		s.errors = append(s.errors, err)
+		s.errors.add( err)
 		return err
 	}
 	defer rc.Close()
@@ -35,11 +36,11 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		s.errors = append(s.errors, ErrEmptyCalendarDatesFile)
+		s.errors.add(ErrEmptyCalendarDatesFile)
 		return ErrEmptyCalendarDatesFile
 	}
 	if err != nil {
-		s.errors = append(s.errors, err)
+		s.errors.add( err)
 		return err
 	}
 
@@ -50,7 +51,7 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 		}
 
 		if len(record) == 0 {
-			s.errors = append(s.errors, fmt.Errorf("empty record at line %d", i))
+			s.errors.add(fmt.Errorf("empty record at line %d", i))
 			return ErrNoCalendarDatesRecords
 		}
 
@@ -58,14 +59,14 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 		for j, v := range record {
 			switch headers[j] {
 			case "service_id":
-				cd.ServiceID = v
+				ParseString(v, &cd.ServiceID)
 			case "date":
-				if err := cd.Date.parse(v); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid date at line %d: %w", i, err))
+				if err := ParseDate(v, &cd.Date); err != nil {
+					s.errors.add( fmt.Errorf("invalid date at line %d: %w", i, err))
 				}
 			case "exception_type":
-				if err := cd.ExceptionType.Parse(v, Accessibility); err != nil {
-					s.errors = append(s.errors, fmt.Errorf("invalid exception type at line %d: %w", i, err))
+				if err := ParseEnum(v, ExceptionType, &cd.ExceptionType); err != nil {
+					s.errors.add(fmt.Errorf("invalid exception_type at line %d: %w", i, err))
 				}
 			default:
 				cd.unused = append(cd.unused, v)

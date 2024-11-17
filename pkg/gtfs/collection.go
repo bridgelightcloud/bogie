@@ -18,6 +18,7 @@ func Overview(c map[string]GTFSSchedule) string {
 		o += fmt.Sprintf("    %d calendar dates\n", len(s.CalendarDates))
 		o += fmt.Sprintf("    %d trips\n", len(s.Trips))
 		o += fmt.Sprintf("    %d stop times\n", len(s.StopTimes))
+		o += fmt.Sprintf("    %d errors\n", len(s.errors))
 		o += "\n"
 	}
 

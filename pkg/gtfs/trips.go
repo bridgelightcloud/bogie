@@ -19,12 +19,12 @@ type Trip struct {
 	ID                   string   `json:"tripId" csv:"trip_id"`
 	Headsign             string   `json:"tripHeadsign" csv:"trip_headsign"`
 	ShortName            string   `json:"tripShortName" csv:"trip_short_name"`
-	DirectionID          Enum     `json:"directionId" csv:"direction_id"`
+	DirectionID          int      `json:"directionId" csv:"direction_id"`
 	BlockID              string   `json:"blockId" csv:"block_id"`
 	ShapeID              string   `json:"shapeId" csv:"shape_id"`
-	WheelchairAccessible Enum     `json:"wheelchairAccessible" csv:"wheelchair_accessible"`
-	BikesAllowed         string   `json:"bikesAllowed" csv:"bikes_allowed"`
-	Unused               []string `json:"-" csv:"-"`
+	WheelchairAccessible int      `json:"wheelchairAccessible" csv:"wheelchair_accessible"`
+	BikesAllowed         int      `json:"bikesAllowed" csv:"bikes_allowed"`
+	unused               []string `json:"-" csv:"-"`
 }
 
 func (s *GTFSSchedule) parseTrips(file *zip.File) error {
@@ -40,12 +40,12 @@ func (s *GTFSSchedule) parseTrips(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		s.errors = append(s.errors, ErrEmptyTripsFile)
+		s.errors.add(ErrEmptyTripsFile)
 		return ErrEmptyTripsFile
 	}
 
 	if err != nil {
-		s.errors = append(s.errors, err)
+		s.errors.add( err)
 		return err
 	}
 
@@ -65,29 +65,33 @@ func (s *GTFSSchedule) parseTrips(file *zip.File) error {
 		for j, v := range record {
 			switch headers[j] {
 			case "route_id":
-				t.RouteID = v
+				ParseString(v, &t.RouteID)
 			case "service_id":
-				t.ServiceID = v
+				ParseString(v, &t.ServiceID)
 			case "trip_id":
-				t.ID = v
+				ParseString(v, &t.ID)
 			case "trip_headsign":
-				t.Headsign = v
+				ParseString(v, &t.Headsign)
 			case "trip_short_name":
-				t.ShortName = v
+				ParseString(v, &t.ShortName)
 			case "direction_id":
-				if err := t.DirectionID.Parse(v, Availability); err != nil {
-					s.errors.add(fmt.Errorf("invalid direction_id at line %d: %w", i, err))
+				if err := ParseEnum(v, DirectionID, &t.DirectionID); err != nil {
+					s.errors.add(fmt.Errorf("invalid direction id at line %d: %w", i, err))
 				}
 			case "block_id":
-				t.BlockID = v
+				ParseString(v, &t.BlockID)
 			case "shape_id":
-				t.ShapeID = v
+				ParseString(v, &t.ShapeID)
 			case "wheelchair_accessible":
-				t.WheelchairAccessible = 0
+				if err := ParseEnum(v, WheelchairAccessible, &t.WheelchairAccessible); err != nil {
+					s.errors.add(fmt.Errorf("invalid wheelchair accessible at line %d: %w", i, err))
+				}
 			case "bikes_allowed":
-				t.BikesAllowed = v
+				if err := ParseEnum(v, BikesAllowed, &t.BikesAllowed); err != nil {
+					s.errors.add(fmt.Errorf("invalid bikes allowed at line %d: %w", i, err))
+				}
 			default:
-				t.Unused = append(t.Unused, v)
+				t.unused = append(t.unused, v)
 			}
 		}
 		s.Trips[t.ID] = t

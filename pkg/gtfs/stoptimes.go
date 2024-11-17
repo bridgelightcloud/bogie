@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"time"
 )
 
 var (
@@ -14,24 +15,24 @@ var (
 )
 
 type StopTime struct {
-	TripID                   string  `json:"tripId"`
-	ArrivalTime              Time    `json:"arrivalTime,omitempty"`
-	DepartureTime            Time    `json:"departureTime,omitempty"`
-	StopID                   string  `json:"stopId"`
-	LocationGroupID          string  `json:"locationGroupId"`
-	LocationID               string  `json:"locationId"`
-	StopSequence             Int     `json:"stopSequence"`
-	StopHeadsign             string  `json:"stopHeadsign"`
-	StartPickupDropOffWindow Time    `json:"startPickupDropOffWindow"`
-	EndPickupDropOffWindow   Time    `json:"endPickupDropOffWindow"`
-	PickupType               Enum    `json:"pickupType"`
-	DropOffType              Enum    `json:"dropOffType"`
-	ContinuousPickup         Enum    `json:"continuousPickup"`
-	ContinuousDropOff        Enum    `json:"continuousDropOff"`
-	ShapeDistTraveled        Float64 `json:"shapeDistTraveled"`
-	Timepoint                Enum    `json:"timepoint"`
-	PickupBookingRuleId      string  `json:"pickupBookingRuleId"`
-	DropOffBookingRuleId     string  `json:"dropOffBookingRuleId"`
+	TripID                   string    `json:"tripId"`
+	ArrivalTime              time.Time `json:"arrivalTime,omitempty"`
+	DepartureTime            time.Time `json:"departureTime,omitempty"`
+	StopID                   string    `json:"stopId"`
+	LocationGroupID          string    `json:"locationGroupId"`
+	LocationID               string    `json:"locationId"`
+	StopSequence             int       `json:"stopSequence"`
+	StopHeadsign             string    `json:"stopHeadsign"`
+	StartPickupDropOffWindow time.Time `json:"startPickupDropOffWindow"`
+	EndPickupDropOffWindow   time.Time `json:"endPickupDropOffWindow"`
+	PickupType               int       `json:"pickupType"`
+	DropOffType              int       `json:"dropOffType"`
+	ContinuousPickup         int       `json:"continuousPickup"`
+	ContinuousDropOff        int       `json:"continuousDropOff"`
+	ShapeDistTraveled        float64   `json:"shapeDistTraveled"`
+	Timepoint                int       `json:"timepoint"`
+	PickupBookingRuleId      string    `json:"pickupBookingRuleId"`
+	DropOffBookingRuleId     string    `json:"dropOffBookingRuleId"`
 
 	primaryKey string
 	unused     []string
@@ -77,63 +78,63 @@ func (s *GTFSSchedule) parseStopTimes(file *zip.File) error {
 		for j, v := range record {
 			switch headers[j] {
 			case "trip_id":
-				st.TripID = v
+				ParseString(v, &st.TripID)
 			case "arrival_time":
-				if err := st.ArrivalTime.parse(v); err != nil {
+				if err := ParseTime(v, &st.ArrivalTime); err != nil {
 					s.errors.add(fmt.Errorf("invalid arrival time at line %d: %w", i, err))
 				}
 			case "departure_time":
-				if err := st.DepartureTime.parse(v); err != nil {
+				if err := ParseTime(v, &st.DepartureTime); err != nil {
 					s.errors.add(fmt.Errorf("invalid departure time at line %d: %w", i, err))
 				}
 			case "stop_id":
-				st.StopID = v
+				ParseString(v, &st.StopID)
 			case "location_group_id":
-				st.LocationGroupID = v
+				ParseString(v, &st.LocationGroupID)
 			case "location_id":
-				st.LocationID = v
+				ParseString(v, &st.LocationID)
 			case "stop_sequence":
-				if err := st.StopSequence.Parse(v); err != nil {
+				if err := ParseInt(v, &st.StopSequence); err != nil {
 					s.errors.add(fmt.Errorf("invalid stop sequence at line %d: %w", i, err))
 				}
 			case "stop_headsign":
-				st.StopHeadsign = v
+				ParseString(v, &st.StopHeadsign)
 			case "start_pickup_drop_off_window":
-				if err := st.StartPickupDropOffWindow.parse(v); err != nil {
+				if err := ParseTime(v, &st.StartPickupDropOffWindow); err != nil {
 					s.errors.add(fmt.Errorf("invalid start pickup drop off window at line %d: %w", i, err))
 				}
 			case "end_pickup_drop_off_window":
-				if err := st.EndPickupDropOffWindow.parse(v); err != nil {
+				if err := ParseTime(v, &st.EndPickupDropOffWindow); err != nil {
 					s.errors.add(fmt.Errorf("invalid end pickup drop off window at line %d: %w", i, err))
 				}
 			case "pickup_type":
-				if err := st.PickupType.Parse(v, PickupType); err != nil {
+				if err := ParseEnum(v, PickupType, &st.PickupType); err != nil {
 					s.errors.add(fmt.Errorf("invalid pickup type at line %d: %w", i, err))
 				}
 			case "drop_off_type":
-				if err := st.DropOffType.Parse(v, DropOffType); err != nil {
+				if err := ParseEnum(v, DropOffType, &st.DropOffType); err != nil {
 					s.errors.add(fmt.Errorf("invalid drop off type at line %d: %w", i, err))
 				}
 			case "continuous_pickup":
-				if err := st.ContinuousPickup.Parse(v, ContinuousPickup); err != nil {
+				if err := ParseEnum(v, ContinuousPickup, &st.ContinuousPickup); err != nil {
 					s.errors.add(fmt.Errorf("invalid continuous pickup at line %d: %w", i, err))
 				}
 			case "continuous_drop_off":
-				if err := st.ContinuousDropOff.Parse(v, ContinuousDropOff); err != nil {
+				if err := ParseEnum(v, ContinuousDropOff, &st.ContinuousDropOff); err != nil {
 					s.errors.add(fmt.Errorf("invalid continuous drop off at line %d: %w", i, err))
 				}
 			case "shape_dist_traveled":
-				if err := st.ShapeDistTraveled.Parse(v); err != nil {
+				if err := ParseFloat(v, &st.ShapeDistTraveled); err != nil {
 					s.errors.add(fmt.Errorf("invalid shape dist traveled at line %d: %w", i, err))
 				}
 			case "timepoint":
-				if err := st.Timepoint.Parse(v, Timepoint); err != nil {
+				if err := ParseEnum(v, Timepoint, &st.Timepoint); err != nil {
 					s.errors.add(fmt.Errorf("invalid timepoint at line %d: %w", i, err))
 				}
 			case "pickup_booking_rule_id":
-				st.PickupBookingRuleId = v
+				ParseString(v, &st.PickupBookingRuleId)
 			case "drop_off_booking_rule_id":
-				st.DropOffBookingRuleId = v
+				ParseString(v, &st.DropOffBookingRuleId)
 			default:
 				st.unused = append(st.unused, v)
 			}

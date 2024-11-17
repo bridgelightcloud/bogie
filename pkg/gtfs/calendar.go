@@ -5,7 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"strings"
+	"time"
 )
 
 var (
@@ -15,16 +15,16 @@ var (
 )
 
 type Calendar struct {
-	ServiceID string `json:"serviceId"`
-	Monday    Enum   `json:"monday"`
-	Tuesday   Enum   `json:"tuesday"`
-	Wednesday Enum   `json:"wednesday"`
-	Thursday  Enum   `json:"thursday"`
-	Friday    Enum   `json:"friday"`
-	Saturday  Enum   `json:"saturday"`
-	Sunday    Enum   `json:"sunday"`
-	StartDate Time   `json:"startDate"`
-	EndDate   Time   `json:"endDate"`
+	ServiceID string    `json:"serviceId"`
+	Monday    int       `json:"monday"`
+	Tuesday   int       `json:"tuesday"`
+	Wednesday int       `json:"wednesday"`
+	Thursday  int       `json:"thursday"`
+	Friday    int       `json:"friday"`
+	Saturday  int       `json:"saturday"`
+	Sunday    int       `json:"sunday"`
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
 
 	unused []string
 }
@@ -34,7 +34,7 @@ func (s *GTFSSchedule) parseCalendar(file *zip.File) error {
 
 	rc, err := file.Open()
 	if err != nil {
-		s.errors = append(s.errors, err)
+		s.errors.add(err)
 		return err
 	}
 	defer rc.Close()
@@ -43,11 +43,11 @@ func (s *GTFSSchedule) parseCalendar(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		s.errors = append(s.errors, ErrEmptyCalendarFile)
+		s.errors.add(ErrEmptyCalendarFile)
 		return ErrEmptyCalendarFile
 	}
 	if err != nil {
-		s.errors = append(s.errors, err)
+		s.errors.add(err)
 		return err
 	}
 
@@ -59,63 +59,62 @@ func (s *GTFSSchedule) parseCalendar(file *zip.File) error {
 		}
 
 		if len(record) == 0 {
-			s.errors = append(s.errors, fmt.Errorf("empty calendar record"))
+			s.errors.add(fmt.Errorf("empty calendar record"))
 			continue
 		}
 
 		if len(record) > len(headers) {
-			s.errors = append(s.errors, fmt.Errorf("invalid calendar record: %v", record))
+			s.errors.add(fmt.Errorf("invalid calendar record: %v", record))
 			continue
 		}
 
 		var c Calendar
 		for j, value := range record {
-			value = strings.TrimSpace(value)
 			switch headers[j] {
 			case "service_id":
 				c.ServiceID = value
 			case "monday":
-				if err := c.Monday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Monday); err != nil {
+					s.errors.add(err)
 				}
 			case "tuesday":
-				if err := c.Tuesday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Tuesday); err != nil {
+					s.errors.add(err)
 				}
 			case "wednesday":
-				if err := c.Wednesday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Wednesday); err != nil {
+					s.errors.add(err)
 				}
 			case "thursday":
-				if err := c.Thursday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Thursday); err != nil {
+					s.errors.add(err)
 				}
 			case "friday":
-				if err := c.Friday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Friday); err != nil {
+					s.errors.add(err)
 				}
 			case "saturday":
-				if err := c.Saturday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Saturday); err != nil {
+					s.errors.add(err)
 				}
 			case "sunday":
-				if err := c.Sunday.Parse(value, Availability); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseEnum(value, Availability, &c.Sunday); err != nil {
+					s.errors.add(err)
 				}
 			case "start_date":
-				if err := c.StartDate.parse(value); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseDate(value, &c.StartDate); err != nil {
+					s.errors.add(err)
 				}
 			case "end_date":
-				if err := c.EndDate.parse(value); err != nil {
-					s.errors = append(s.errors, err)
+				if err := ParseDate(value, &c.EndDate); err != nil {
+					s.errors.add(err)
 				}
 			default:
-				c.unused = append(c.unused, value)
+				appendParsedString(value, &c.unused)
 			}
 		}
 		if _, ok := s.Calendar[c.ServiceID]; ok {
-			s.errors = append(s.errors, fmt.Errorf("duplicate calendar record: %s", c.ServiceID))
+			s.errors.add(fmt.Errorf("duplicate calendar record: %s", c.ServiceID))
 			continue
 		} else {
 			s.Calendar[c.ServiceID] = c
@@ -123,66 +122,13 @@ func (s *GTFSSchedule) parseCalendar(file *zip.File) error {
 	}
 
 	if err != io.EOF {
-		s.errors = append(s.errors, err)
+		s.errors.add(err)
 		return err
 	}
 
 	if len(s.Calendar) == 0 {
-		s.errors = append(s.errors, ErrNoCalendarRecords)
+		s.errors.add(ErrNoCalendarRecords)
 	}
 
 	return nil
 }
-
-// func validateCalendarHeader(headers []string) error {
-// 	requiredFields := []struct {
-// 		name  string
-// 		found bool
-// 	}{{
-// 		name:  "service_id",
-// 		found: false,
-// 	}, {
-// 		name:  "monday",
-// 		found: false,
-// 	}, {
-// 		name:  "tuesday",
-// 		found: false,
-// 	}, {
-// 		name:  "wednesday",
-// 		found: false,
-// 	}, {
-// 		name:  "thursday",
-// 		found: false,
-// 	}, {
-// 		name:  "friday",
-// 		found: false,
-// 	}, {
-// 		name:  "saturday",
-// 		found: false,
-// 	}, {
-// 		name:  "sunday",
-// 		found: false,
-// 	}, {
-// 		name:  "start_date",
-// 		found: false,
-// 	}, {
-// 		name:  "end_date",
-// 		found: false,
-// 	}}
-
-// 	for _, field := range headers {
-// 		for i, req := range requiredFields {
-// 			if field == req.name {
-// 				requiredFields[i].found = true
-// 			}
-// 		}
-// 	}
-
-// 	for _, req := range requiredFields {
-// 		if !req.found {
-// 			return ErrInvalidCalendarHeaders
-// 		}
-// 	}
-
-// 	return nil
-// }
