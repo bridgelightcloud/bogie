@@ -15,17 +15,17 @@ var (
 )
 
 type Agency struct {
-	ID          string `json:"agencyId,omitempty"`
-	Name        string `json:"agencyName"`
-	URL         string `json:"agencyUrl"`
-	Timezone    string `json:"agencyTimezone"`
-	Lang        string `json:"agencyLang,omitempty"`
-	Phone       string `json:"agencyPhone,omitempty"`
-	FareURL     string `json:"agencyFareUrl,omitempty"`
-	AgencyEmail string `json:"agencyEmail,omitempty"`
-	unused      []string
+	ID          String `json:"agencyId,omitempty"`
+	Name        String `json:"agencyName"`
+	URL         String `json:"agencyUrl"`
+	Timezone    String `json:"agencyTimezone"`
+	Lang        String `json:"agencyLang,omitempty"`
+	Phone       String `json:"agencyPhone,omitempty"`
+	FareURL     String `json:"agencyFareUrl,omitempty"`
+	AgencyEmail String `json:"agencyEmail,omitempty"`
+	unused      []String
 
-	route []string
+	route []String
 }
 
 func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
@@ -33,6 +33,7 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 
 	rc, err := file.Open()
 	if err != nil {
+		s.errors = append(s.errors, fmt.Errorf("error opening agency file: %w", err))
 		return err
 	}
 	defer rc.Close()
@@ -41,9 +42,11 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
+		s.errors = append(s.errors, ErrEmptyAgencyFile)
 		return ErrEmptyAgencyFile
 	}
 	if err != nil {
+		s.errors = append(s.errors, err)
 		return err
 	}
 
@@ -55,80 +58,65 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 		}
 
 		if len(record) == 0 {
+			s.errors = append(s.errors, fmt.Errorf("empty agency record"))
 			continue
 		}
 
 		if len(record) > len(headers) {
-			return fmt.Errorf("record has too many columns")
+			s.errors = append(s.errors, fmt.Errorf("record has too many columns"))
 		}
 
-		var agency Agency
-		for j, value := range record {
-			value = strings.TrimSpace(value)
+		var a Agency
+		for j, v := range record {
+			v = strings.TrimSpace(v)
 			switch headers[j] {
 			case "agency_id":
-				agency.ID = value
+				if err := a.ID.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_id: %w", err))
+				}
 			case "agency_name":
-				agency.Name = value
+				if err := a.Name.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_name: %w", err))
+				}
 			case "agency_url":
-				agency.URL = value
+				if err := a.URL.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_url: %w", err))
+				}
 			case "agency_timezone":
-				agency.Timezone = value
+				if err := a.Timezone.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_timezone: %w", err))
+				}
 			case "agency_lang":
-				agency.Lang = value
+				if err := a.Lang.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_lang: %w", err))
+				}
 			case "agency_phone":
-				agency.Phone = value
+				if err := a.Phone.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_phone: %w", err))
+				}
 			case "agency_fare_url":
-				agency.FareURL = value
+				if err := a.FareURL.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_fare_url: %w", err))
+				}
 			case "agency_email":
-				agency.AgencyEmail = value
+				if err := a.AgencyEmail.Parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid agency_email: %w", err))
+				}
 			default:
-				agency.unused = append(agency.unused, value)
+				a.unused = append(a.unused, String(strings.TrimSpace(v)))
 			}
 		}
-		s.Agencies[agency.ID] = agency
+		s.Agencies[string(a.ID)] = a
 	}
 
 	if err != io.EOF {
+		s.errors = append(s.errors, err)
 		return err
 	}
 
 	if len(s.Agencies) == 0 {
+		s.errors = append(s.errors, ErrNoAgencyRecords)
 		return ErrNoAgencyRecords
-	}
-
-	return nil
-}
-
-func validateAgenciesHeader(fields []string) error {
-	requiredFields := []struct {
-		name  string
-		found bool
-	}{{
-		name:  "agency_name",
-		found: false},
-		{
-			name:  "agency_url",
-			found: false,
-		},
-		{
-			name:  "agency_timezone",
-			found: false,
-		},
-	}
-
-	for _, field := range fields {
-		for i, req := range requiredFields {
-			if field == req.name {
-				requiredFields[i].found = true
-			}
-		}
-	}
-
-	for _, req := range requiredFields {
-		if !req.found {
-			return ErrInvalidAgencyHeaders
-		}
 	}
 
 	return nil

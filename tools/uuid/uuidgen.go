@@ -24,7 +24,7 @@ func main() {
 	for i := 0; i < c; i++ {
 		uuid := uuid.New()
 		fmt.Println(uuid.String())
-		var arr [16]byte = uuid
-		fmt.Printf("%#v\n\n", arr)
+		// var arr [16]byte = uuid
+		// fmt.Printf("%#v\n\n", arr)
 	}
 }

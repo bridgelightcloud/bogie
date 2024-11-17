@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"encoding/csv"
 	"fmt"
+	"io"
 )
 
 var (
@@ -18,96 +19,78 @@ type Trip struct {
 	ID                   string   `json:"tripId" csv:"trip_id"`
 	Headsign             string   `json:"tripHeadsign" csv:"trip_headsign"`
 	ShortName            string   `json:"tripShortName" csv:"trip_short_name"`
-	DirectionID          string   `json:"directionId" csv:"direction_id"`
+	DirectionID          Enum     `json:"directionId" csv:"direction_id"`
 	BlockID              string   `json:"blockId" csv:"block_id"`
 	ShapeID              string   `json:"shapeId" csv:"shape_id"`
-	WheelchairAccessible string   `json:"wheelchairAccessible" csv:"wheelchair_accessible"`
+	WheelchairAccessible Enum     `json:"wheelchairAccessible" csv:"wheelchair_accessible"`
 	BikesAllowed         string   `json:"bikesAllowed" csv:"bikes_allowed"`
 	Unused               []string `json:"-" csv:"-"`
 }
 
-func parseTrips(file *zip.File) ([]Trip, error) {
+func (s *GTFSSchedule) parseTrips(file *zip.File) error {
+	s.Trips = map[string]Trip{}
+
 	rc, err := file.Open()
 	if err != nil {
-		return []Trip{}, err
+		return err
 	}
 	defer rc.Close()
 
-	lines, err := csv.NewReader(rc).ReadAll()
-	if len(lines) == 0 {
-		return []Trip{}, ErrEmptyTripsFile
+	r := csv.NewReader(rc)
+
+	headers, err := r.Read()
+	if err == io.EOF {
+		s.errors = append(s.errors, ErrEmptyTripsFile)
+		return ErrEmptyTripsFile
 	}
 
-	headers := lines[0]
-	if err := validateTripsHeader(headers); err != nil {
-		return []Trip{}, err
+	if err != nil {
+		s.errors = append(s.errors, err)
+		return err
 	}
 
-	records := lines[1:]
-	if len(records) == 0 {
-		return []Trip{}, ErrNoTripsRecords
-	}
+	var record []string
+	for i := 0; ; i++ {
+		record, err = r.Read()
+		if err != nil {
+			break
+		}
 
-	trips := make([]Trip, len(records))
-	for i, field := range headers {
-		for j, record := range records {
-			switch field {
-			case "trip_id":
-				trips[j].ID = record[i]
+		if len(record) == 0 {
+			s.errors.add(fmt.Errorf("empty record at line %d", i))
+			continue
+		}
+
+		t := Trip{}
+		for j, v := range record {
+			switch headers[j] {
 			case "route_id":
-				trips[j].RouteID = record[i]
+				t.RouteID = v
 			case "service_id":
-				trips[j].ServiceID = record[i]
+				t.ServiceID = v
+			case "trip_id":
+				t.ID = v
 			case "trip_headsign":
-				trips[j].Headsign = record[i]
+				t.Headsign = v
 			case "trip_short_name":
-				trips[j].ShortName = record[i]
+				t.ShortName = v
 			case "direction_id":
-				trips[j].DirectionID = record[i]
+				if err := t.DirectionID.Parse(v, Availability); err != nil {
+					s.errors.add(fmt.Errorf("invalid direction_id at line %d: %w", i, err))
+				}
 			case "block_id":
-				trips[j].BlockID = record[i]
+				t.BlockID = v
 			case "shape_id":
-				trips[j].ShapeID = record[i]
+				t.ShapeID = v
 			case "wheelchair_accessible":
-				trips[j].WheelchairAccessible = record[i]
+				t.WheelchairAccessible = 0
 			case "bikes_allowed":
-				trips[j].BikesAllowed = record[i]
+				t.BikesAllowed = v
 			default:
-				trips[j].Unused = append(trips[j].Unused, record[i])
+				t.Unused = append(t.Unused, v)
 			}
 		}
-	}
-
-	return trips, nil
-}
-
-func validateTripsHeader(headers []string) error {
-	requiredFields := []struct {
-		name  string
-		found bool
-	}{{
-		name:  "route_id",
-		found: false,
-	}, {
-		name:  "service_id",
-		found: false,
-	}, {
-		name:  "trip_id",
-		found: false,
-	}}
-
-	for _, field := range headers {
-		for i, rf := range requiredFields {
-			if field == rf.name {
-				requiredFields[i].found = true
-			}
-		}
-	}
-
-	for _, rf := range requiredFields {
-		if !rf.found {
-			return ErrInvalidTripsHeaders
-		}
+		s.Trips[t.ID] = t
 	}
 
 	return nil

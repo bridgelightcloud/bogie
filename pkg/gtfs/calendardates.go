@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"encoding/csv"
 	"fmt"
+	"io"
 )
 
 var (
@@ -13,80 +14,64 @@ var (
 )
 
 type CalendarDate struct {
-	ServiceID     string   `json:"serviceId" csv:"service_id"`
-	Date          string   `json:"date" csv:"date"`
-	ExceptionType string   `json:"exceptionType" csv:"exception_type"`
-	Unused        []string `json:"-" csv:"-"`
+	ServiceID     string `json:"serviceId"`
+	Date          Time   `json:"date"`
+	ExceptionType Enum   `json:"exceptionType"`
+
+	unused []string
 }
 
-func parseCalendarDates(file *zip.File) ([]CalendarDate, error) {
+func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
+	s.CalendarDates = map[string]CalendarDate{}
+
 	rc, err := file.Open()
 	if err != nil {
-		return []CalendarDate{}, err
+		s.errors = append(s.errors, err)
+		return err
 	}
 	defer rc.Close()
 
-	lines, err := csv.NewReader(rc).ReadAll()
-	if len(lines) == 0 {
-		return []CalendarDate{}, ErrEmptyCalendarDatesFile
+	r := csv.NewReader(rc)
+
+	headers, err := r.Read()
+	if err == io.EOF {
+		s.errors = append(s.errors, ErrEmptyCalendarDatesFile)
+		return ErrEmptyCalendarDatesFile
+	}
+	if err != nil {
+		s.errors = append(s.errors, err)
+		return err
 	}
 
-	headers := lines[0]
-	if err := validateCalendarDatesHeader(headers); err != nil {
-		return []CalendarDate{}, err
-	}
+	for i := 0; ; i++ {
+		record, err := r.Read()
+		if err != nil {
+			break
+		}
 
-	records := lines[1:]
-	if len(records) == 0 {
-		return []CalendarDate{}, ErrNoCalendarDatesRecords
-	}
+		if len(record) == 0 {
+			s.errors = append(s.errors, fmt.Errorf("empty record at line %d", i))
+			return ErrNoCalendarDatesRecords
+		}
 
-	calendarDates := make([]CalendarDate, len(records))
-	for i, field := range headers {
-		for j, record := range records {
-			switch field {
+		var cd CalendarDate
+		for j, v := range record {
+			switch headers[j] {
 			case "service_id":
-				calendarDates[j].ServiceID = record[i]
+				cd.ServiceID = v
 			case "date":
-				calendarDates[j].Date = record[i]
+				if err := cd.Date.parse(v); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid date at line %d: %w", i, err))
+				}
 			case "exception_type":
-				calendarDates[j].ExceptionType = record[i]
+				if err := cd.ExceptionType.Parse(v, Accessibility); err != nil {
+					s.errors = append(s.errors, fmt.Errorf("invalid exception type at line %d: %w", i, err))
+				}
 			default:
-				calendarDates[j].Unused = append(calendarDates[j].Unused, record[i])
+				cd.unused = append(cd.unused, v)
 			}
 		}
-	}
-
-	return calendarDates, nil
-}
-
-func validateCalendarDatesHeader(headers []string) error {
-	requiredFields := []struct {
-		name  string
-		found bool
-	}{{
-		name:  "service_id",
-		found: false,
-	}, {
-		name:  "date",
-		found: false,
-	}, {
-		name:  "exception_type",
-		found: false,
-	}}
-
-	for _, h := range headers {
-		for i, f := range requiredFields {
-			if h == f.name {
-				requiredFields[i].found = true
-			}
-		}
-	}
-
-	for _, f := range requiredFields {
-		if !f.found {
-			return ErrInvalidCalendarDatesHeaders
-		}
+		s.CalendarDates[cd.ServiceID] = cd
 	}
 
 	return nil

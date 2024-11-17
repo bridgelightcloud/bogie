@@ -116,7 +116,7 @@ func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
 				if a, ok := s.Agencies[route.AgencyID]; !ok {
 					return fmt.Errorf("route %s references unknown agency %s", route.ID, route.AgencyID)
 				} else {
-					a.route = append(a.route, route.ID)
+					a.route = append(a.route, String(route.ID))
 				}
 			}
 		}

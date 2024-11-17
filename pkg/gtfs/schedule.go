@@ -19,15 +19,16 @@ var (
 
 type GTFSSchedule struct {
 	// Required files
-	Agencies map[string]Agency
-	Stops    map[string]Stop
-	Routes   map[string]Route
-	// Trips         []Trip
-	// StopTimes     []StopTime
-	// Calendar      []Calendar
-	// CalendarDates []CalendarDate
+	Agencies      map[string]Agency
+	Stops         map[string]Stop
+	Routes        map[string]Route
+	Calendar      map[string]Calendar
+	CalendarDates map[string]CalendarDate
+	Trips         map[string]Trip
+	StopTimes     map[string]StopTime
 
 	unusedFiles []string
+	errors      errorList
 }
 
 func OpenScheduleFromFile(fn string) (GTFSSchedule, error) {
@@ -71,10 +72,32 @@ func parseSchedule(r *zip.ReadCloser) (GTFSSchedule, error) {
 		return s, err
 	}
 
+	if f, ok := files["calendar.txt"]; !ok {
+		return s, ErrMissingCalendar
+	} else if err := s.parseCalendar(f); err != nil {
+		return s, err
+	}
+
+	if f, ok := files["calendar_dates.txt"]; !ok {
+		return s, ErrMissingCalendarDates
+	} else if err := s.parseCalendarDates(f); err != nil {
+		return s, err
+	}
+
+	if f, ok := files["trips.txt"]; !ok {
+		return s, ErrMissingTrips
+	} else if err := s.parseTrips(f); err != nil {
+		return s, err
+	}
+
+	if f, ok := files["stop_times.txt"]; !ok {
+		return s, ErrMissingStopTimes
+	} else if err := s.parseStopTimes(f); err != nil {
+		return s, err
+	}
+
 	// f, ok = files["trips.txt"]
 	// f, ok = files["stop_times.txt"]
-	// f, ok = files["calendar.txt"]
-	// f, ok = files["calendar_dates.txt"]
 	// f, ok = files["fare_attributes.txt"]
 	// f, ok = files["fare_rules.txt"]
 	// f, ok = files["timeframes.txt"]
