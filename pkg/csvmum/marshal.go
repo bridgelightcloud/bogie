@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 func GetStructHeaders(v any) ([]string, error) {
@@ -21,8 +20,8 @@ func GetStructHeaders(v any) ([]string, error) {
 	}
 }
 
-func Marshal(v any) ([]byte, error) {
-	out := []byte{}
+func Marshal(v any) ([][]string, error) {
+	out := [][]string{}
 
 	if val := reflect.ValueOf(v); val.Kind() == reflect.Slice {
 		len := val.Len()
@@ -35,7 +34,7 @@ func Marshal(v any) ([]byte, error) {
 		if err != nil {
 			return out, err
 		}
-		out = append(out, []byte(fmt.Sprintf("%s\n", strings.Join(headers, ",")))...)
+		out = append(out, headers)
 
 		for i := 0; i < len; i++ {
 			item := val.Index(i)
@@ -56,7 +55,7 @@ func Marshal(v any) ([]byte, error) {
 					record = append(record, fmt.Sprintf("%s", strconv.FormatFloat(field.Float(), 'f', -1, 64)))
 				}
 			}
-			out = append(out, []byte(fmt.Sprintf("%s\n", strings.Join(record, ",")))...)
+			out = append(out, record)
 		}
 	} else {
 		return out, fmt.Errorf("Marshal: not a slice")
