@@ -1,6 +1,8 @@
 # CSVMUM
 CSV Marshal/Unmarshal
 
+Working branch [csvmum](https://github.com/bridgelightcloud/bogie/blob/csvmum/pkg/csvmum/README.md)
+
 CSVMUM can convert a slice or map of structs into a slice of slices of strings, which can then be written with `csv.Write`
 
 Example
