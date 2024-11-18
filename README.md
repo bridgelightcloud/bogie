@@ -33,6 +33,8 @@ Known simply as "Bogie", this project is a system for tracking and analyzing tra
 ### CSV MUM
 Marshal and unmarshal CSV files to and from Go structs, using reflection, tags, and custom parsers
 
+[README](./pkg/csvmum/README.md)
+
 ### GTFS Parser
 Read GTFS zip files and parse the data
 
