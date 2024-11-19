@@ -70,27 +70,27 @@ func TestMarshal(t *testing.T) {
 	tt := []struct {
 		name     string
 		input    any
-		expected []byte
+		expected [][]string
 		err      error
 	}{{
 		name:     "empty",
 		input:    []struct{}{},
-		expected: []byte{},
+		expected: [][]string{},
 		err:      nil,
 	}, {
 		name:     "not a struct",
 		input:    []int{1, 2, 3},
-		expected: []byte{},
+		expected: [][]string{},
 		err:      fmt.Errorf("GetStructHeaders: not a struct"),
 	}, {
 		name:     "not a slice",
 		input:    34,
-		expected: []byte{},
+		expected: [][]string{},
 		err:      fmt.Errorf("Marshal: not a slice"),
 	}, {
 		name:     "simple",
 		input:    []struct{ One string }{{One: "one"}},
-		expected: []byte("One\none\n"),
+		expected: [][]string{{"One"}, {"one"}},
 		err:      nil,
 	}, {
 		name: "complex",
@@ -99,7 +99,7 @@ func TestMarshal(t *testing.T) {
 			Two   int
 			Three bool
 		}{{One: "one", Two: 1, Three: true}},
-		expected: []byte("One,Two,Three\none,1,true\n"),
+		expected: [][]string{{"One", "Two", "Three"}, {"one", "1", "true"}},
 		err:      nil,
 	}, {
 		name: "unexported",
@@ -108,7 +108,7 @@ func TestMarshal(t *testing.T) {
 			two   int
 			Three float64
 		}{{One: "one", two: 2, Three: 67.3}},
-		expected: []byte("One,Three\none,67.3\n"),
+		expected: [][]string{{"One", "Three"}, {"one", "67.3"}},
 		err:      nil,
 	}}
 
