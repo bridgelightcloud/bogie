@@ -8,12 +8,6 @@ import (
 	"strings"
 )
 
-var (
-	ErrEmptyAgencyFile      = fmt.Errorf("empty agency file")
-	ErrInvalidAgencyHeaders = fmt.Errorf("invalid agency headers")
-	ErrNoAgencyRecords      = fmt.Errorf("no agency records")
-)
-
 type Agency struct {
 	ID          string `json:"agencyId,omitempty"`
 	Name        string `json:"agencyName"`
@@ -26,15 +20,22 @@ type Agency struct {
 	unused      []string
 
 	route []string
+
+	errors   errorList
+	warnings errorList
 }
 
-func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
+func (a Agency) IsValid() bool {
+	return len(a.errors) == 0
+}
+
+func (s *GTFSSchedule) parseAgencies(file *zip.File) {
 	s.Agencies = map[string]Agency{}
 
 	rc, err := file.Open()
 	if err != nil {
 		s.errors.add(fmt.Errorf("error opening agency file: %w", err))
-		return err
+		return
 	}
 	defer rc.Close()
 
@@ -42,12 +43,12 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		s.errors.add(ErrEmptyAgencyFile)
-		return ErrEmptyAgencyFile
+		s.errors.add(fmt.Errorf("empty agency file"))
+		return
 	}
 	if err != nil {
 		s.errors.add(err)
-		return err
+		return
 	}
 
 	var record []string
@@ -90,18 +91,49 @@ func (s *GTFSSchedule) parseAgencies(file *zip.File) error {
 				a.unused = append(a.unused, strings.TrimSpace(v))
 			}
 		}
+		validateAgency(&a)
 		s.Agencies[a.ID] = a
 	}
 
 	if err != io.EOF {
-		s.errors.add( err)
-		return err
+		s.errors.add(err)
+		return
 	}
 
 	if len(s.Agencies) == 0 {
-		s.errors.add(ErrNoAgencyRecords)
-		return ErrNoAgencyRecords
+		s.errors.add(fmt.Errorf("no agency records"))
+		return
+	}
+}
+
+func validateAgency(a *Agency) {
+	if a.Name == "" {
+		a.errors.add(fmt.Errorf("agency name is required"))
 	}
 
-	return nil
+	if a.URL == "" {
+		a.errors.add(fmt.Errorf("agency URL is required"))
+	}
+
+	if a.Timezone == "" {
+		a.errors.add(fmt.Errorf("agency timezone is required"))
+	} else {
+
+	}
+
+	if a.Lang != "" {
+		// validate language code
+	}
+
+	if a.Phone != "" {
+		// validate phone number
+	}
+
+	if a.FareURL != "" {
+		// validate URL
+	}
+
+	if a.AgencyEmail != "" {
+		// validate email
+	}
 }

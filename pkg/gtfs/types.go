@@ -268,7 +268,7 @@ var (
 	ExactTime       int        = 1
 
 	LocationType enumBounds = enumBounds{0, 4}
-	Platform     int        = 0
+	StopPlatform int        = 0
 	Station      int        = 1
 	EntranceExit int        = 2
 	GenericNode  int        = 3
@@ -334,6 +334,14 @@ func (e *errorList) add(err error) error {
 type Coords struct {
 	Lat float64 `json:"lat"`
 	Lon float64 `json:"lon"`
+}
+
+func (c Coords) IsValid() bool {
+	return c.Lat >= -90 && c.Lat <= 90 && c.Lon >= -180 && c.Lon <= 180
+}
+
+func (c Coords) IsSet() bool {
+	return c.Lat != 0 && c.Lon != 0
 }
 
 func ParseLat(v string, c *Coords) error {

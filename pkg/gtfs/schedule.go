@@ -5,18 +5,6 @@ import (
 	"fmt"
 )
 
-// Errors
-var (
-	ErrBadScheduleFile      = fmt.Errorf("bad schedule file")
-	ErrMissingAgency        = fmt.Errorf("missing agency file")
-	ErrMissingRoutes        = fmt.Errorf("missing routes file")
-	ErrMissingTrips         = fmt.Errorf("missing trips file")
-	ErrMissingStops         = fmt.Errorf("missing stops file")
-	ErrMissingStopTimes     = fmt.Errorf("missing stop times file")
-	ErrMissingCalendar      = fmt.Errorf("missing calendar file")
-	ErrMissingCalendarDates = fmt.Errorf("missing calendar dates file")
-)
-
 type GTFSSchedule struct {
 	// Required files
 	Agencies      map[string]Agency
@@ -26,9 +14,11 @@ type GTFSSchedule struct {
 	CalendarDates map[string]CalendarDate
 	Trips         map[string]Trip
 	StopTimes     map[string]StopTime
+	Levels        map[string]Level
 
 	unusedFiles []string
 	errors      errorList
+	warning     errorList
 }
 
 func OpenScheduleFromFile(fn string) (GTFSSchedule, error) {
@@ -52,43 +42,49 @@ func parseSchedule(r *zip.ReadCloser) GTFSSchedule {
 	}
 
 	if f, ok := files["agency.txt"]; !ok {
-		s.errors.add(ErrMissingAgency)
-	} else if err := s.parseAgencies(f); err != nil {
-		s.errors.add(err)
+		s.errors.add(fmt.Errorf("missing agency.txt"))
+	} else {
+		s.parseAgencies(f)
+	}
+
+	if f, ok := files["levels.txt"]; !ok {
+		s.errors.add(fmt.Errorf("missing levels.txt"))
+	} else {
+		s.parseLevels(f)
 	}
 
 	if f, ok := files["stops.txt"]; !ok {
-		s.errors.add(ErrMissingStops)
-	} else if err := s.parseStopsData(f); err != nil {
-		s.errors.add(err)
+		s.errors.add(fmt.Errorf("missing stops.txt"))
+	} else {
+		s.parseStopsData(f)
 	}
 
 	if f, ok := files["routes.txt"]; !ok {
-		s.errors.add(ErrMissingRoutes)
-	} else if err := s.parseRoutes(f); err != nil {
-		s.errors.add(err)
+		s.errors.add(fmt.Errorf("missing routes.txt"))
+	} else {
+		s.parseRoutes(f)
 	}
 
 	if f, ok := files["calendar.txt"]; !ok {
-		s.errors.add(ErrMissingCalendar)
+		s.errors.add(fmt.Errorf("missing calendar.txt"))
 	} else if err := s.parseCalendar(f); err != nil {
 		s.errors.add(err)
 	}
 
 	if f, ok := files["calendar_dates.txt"]; !ok {
-		s.errors.add(ErrMissingCalendarDates)
+		s.errors.add(fmt.Errorf("missing calendar_dates.txt"))
 	} else if err := s.parseCalendarDates(f); err != nil {
 		s.errors.add(err)
 	}
 
 	if f, ok := files["trips.txt"]; !ok {
-		s.errors.add(ErrMissingTrips)
+		s.errors.add(fmt.Errorf("missing trips.txt"))
 	} else if err := s.parseTrips(f); err != nil {
 		s.errors.add(err)
 	}
 
 	if f, ok := files["stop_times.txt"]; !ok {
-		s.errors.add(ErrMissingStopTimes)
+		s.errors.add(fmt.Errorf("missing stop_times.txt"))
 	} else if err := s.parseStopTimes(f); err != nil {
 		s.errors.add(err)
 	}

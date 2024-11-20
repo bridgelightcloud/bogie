@@ -7,30 +7,6 @@ import (
 	"io"
 )
 
-var (
-	ErrEmptyStopsFile      = fmt.Errorf("empty stops file")
-	ErrInvalidStopsHeaders = fmt.Errorf("invalid stops headers")
-	ErrNoStopsRecords      = fmt.Errorf("no stops records")
-)
-
-var (
-	ErrInvalidStopID                 = fmt.Errorf("invalid stop ID")
-	ErrInvalidStopCode               = fmt.Errorf("invalid stop code")
-	ErrInvalidStopName               = fmt.Errorf("invalid stop name")
-	ErrInvalidStopTTSName            = fmt.Errorf("invalid stop TTS name")
-	ErrInvalidStopDesc               = fmt.Errorf("invalid stop description")
-	ErrInvalidStopLat                = fmt.Errorf("invalid stop latitude")
-	ErrInvalidStopLon                = fmt.Errorf("invalid stop longitude")
-	ErrInvalidStopZoneID             = fmt.Errorf("invalid stop zone ID")
-	ErrInvalidStopURL                = fmt.Errorf("invalid stop URL")
-	ErrInvalidStopLocationType       = fmt.Errorf("invalid stop location type")
-	ErrInvalidStopParentStation      = fmt.Errorf("invalid stop parent station")
-	ErrInvalidStopTimezone           = fmt.Errorf("invalid stop timezone")
-	ErrInvalidStopWheelchairBoarding = fmt.Errorf("invalid stop wheelchair boarding")
-	ErrInvalidStopLevelID            = fmt.Errorf("invalid stop level ID")
-	ErrInvalidStopPlatformCode       = fmt.Errorf("invalid stop platform code")
-)
-
 type Stop struct {
 	ID                 string `json:"stopId"`
 	Code               string `json:"stopCode,omitempty"`
@@ -49,12 +25,13 @@ type Stop struct {
 	unused             []string
 
 	children map[string]bool
+	errors   errorList
+	warnings errorList
 }
 
 func (s *GTFSSchedule) parseStopsData(file *zip.File) error {
 	s.Stops = make(map[string]Stop)
 
-	cp := make(map[string]string)
 	rc, err := file.Open()
 	if err != nil {
 		return err
@@ -65,12 +42,13 @@ func (s *GTFSSchedule) parseStopsData(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		return ErrEmptyStopsFile
+		s.errors.add(fmt.Errorf("empty stops file"))
 	}
 	if err != nil {
 		return err
 	}
 
+	cp := make(map[string]string)
 	var record []string
 	for i := 0; ; i++ {
 		record, err = r.Read()
@@ -125,7 +103,7 @@ func (s *GTFSSchedule) parseStopsData(file *zip.File) error {
 				st.unused = append(st.unused, value)
 			}
 		}
-
+		validateStop(&st)
 		s.Stops[st.ID] = st
 
 		if st.ParentStation != "" {
@@ -138,7 +116,7 @@ func (s *GTFSSchedule) parseStopsData(file *zip.File) error {
 	}
 
 	if len(s.Stops) == 0 {
-		return ErrNoStopsRecords
+		s.errors.add(fmt.Errorf("no stop records found"))
 	}
 
 	for id, parentId := range cp {
@@ -153,4 +131,44 @@ func (s *GTFSSchedule) parseStopsData(file *zip.File) error {
 	}
 
 	return nil
+}
+
+func validateStop(st *Stop) {
+	if st.ID == "" {
+		st.errors.add(fmt.Errorf("stop ID is required"))
+	}
+
+	// Code is optional
+
+	if st.Name == "" {
+		if st.LocationType == StopPlatform || st.LocationType == Station || st.LocationType == EntranceExit {
+			st.errors.add(fmt.Errorf("stop name is required for location type %d", st.LocationType))
+		}
+	}
+
+	// TTSName is optional
+
+	// Desc is optional
+
+	if !st.Coords.IsValid() {
+		if st.LocationType == StopPlatform || st.LocationType == Station || st.LocationType == EntranceExit {
+			st.errors.add(fmt.Errorf("invalid stop coordinates for location type %d", st.LocationType))
+		}
+	}
+
+	// ZoneID is optional
+
+	if st.LocationType < StopPlatform || st.LocationType > BoardingArea {
+		st.errors.add(fmt.Errorf("invalid location type: %d", st.LocationType))
+	}
+
+	// ParentStation is validated in full stops list
+
+	// Validate Timezone
+
+	// WheelchairBoarding is validated in full stops list
+
+	// LevelID is validated in full stops list
+
+	// PlatformCode is optional
 }

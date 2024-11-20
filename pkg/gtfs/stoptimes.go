@@ -8,12 +8,6 @@ import (
 	"time"
 )
 
-var (
-	ErrEmptyStopTimesFile      = fmt.Errorf("empty stop times file")
-	ErrInvalidStopTimesHeaders = fmt.Errorf("invalid stop times headers")
-	ErrNoStopTimesRecords      = fmt.Errorf("no stop times records")
-)
-
 type StopTime struct {
 	TripID                   string    `json:"tripId"`
 	ArrivalTime              time.Time `json:"arrivalTime,omitempty"`
@@ -151,36 +145,7 @@ func (s *GTFSSchedule) parseStopTimes(file *zip.File) error {
 	}
 
 	if len(s.StopTimes) == 0 {
-		s.errors.add(ErrNoStopTimesRecords)
+		s.errors.add(fmt.Errorf("no stop times found"))
 	}
-	return nil
-}
-
-func validateStopTimesHeader(fields []string) error {
-	requiredFields := []struct {
-		name  string
-		found bool
-	}{{
-		name:  "trip_id",
-		found: false,
-	}, {
-		name:  "stop_sequence",
-		found: false,
-	}}
-
-	for _, field := range fields {
-		for i, f := range requiredFields {
-			if field == f.name {
-				requiredFields[i].found = true
-			}
-		}
-	}
-
-	for _, f := range requiredFields {
-		if !f.found {
-			return ErrInvalidStopTimesHeaders
-		}
-	}
-
 	return nil
 }

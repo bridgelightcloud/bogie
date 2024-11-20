@@ -5,13 +5,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"strings"
-)
-
-var (
-	ErrEmptyRoutesFile      = fmt.Errorf("empty routes file")
-	ErrInvalidRoutesHeaders = fmt.Errorf("invalid routes headers")
-	ErrNoRoutesRecords      = fmt.Errorf("no routs records")
 )
 
 type Route struct {
@@ -31,16 +24,17 @@ type Route struct {
 	unused            []string
 }
 
-func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
+func (s *GTFSSchedule) parseRoutes(file *zip.File) {
 	s.Routes = map[string]Route{}
 
 	if s.Agencies == nil {
-		return fmt.Errorf("Agencies must be parsed before Routes")
+		s.errors.add(fmt.Errorf("Agencies must be parsed before Routes"))
 	}
 
 	rc, err := file.Open()
 	if err != nil {
-		return err
+		s.errors.add(fmt.Errorf("error opening routes file: %w", err))
+		return
 	}
 	defer rc.Close()
 
@@ -48,10 +42,12 @@ func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
 
 	headers, err := r.Read()
 	if err == io.EOF {
-		return ErrEmptyRoutesFile
+		s.errors.add(fmt.Errorf("empty routes file"))
+		return
 	}
 	if err != nil {
-		return err
+		s.errors.add(fmt.Errorf("error reading routes file: %w", err))
+		return
 	}
 
 	var record []string
@@ -66,23 +62,16 @@ func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
 		}
 
 		if len(record) > len(headers) {
-			return fmt.Errorf("record has too many columns")
+			s.errors.add(fmt.Errorf("record has too many columns"))
+			continue
 		}
 
 		var route Route
 		for j, value := range record {
 			switch headers[j] {
 			case "route_id":
-				if value == "" {
-					return fmt.Errorf("route_id is required")
-				}
 				route.ID = value
 			case "agency_id":
-				if value == "" {
-					if len(s.Agencies) > 1 {
-						return fmt.Errorf("agency_id is required when there are multiple agencies")
-					}
-				}
 				route.AgencyID = value
 			case "route_short_name":
 				route.ShortName = value
@@ -110,22 +99,12 @@ func (s *GTFSSchedule) parseRoutes(file *zip.File) error {
 				route.unused = append(route.unused, value)
 			}
 			s.Routes[route.ID] = route
-
-			if route.AgencyID != "" {
-				if a, ok := s.Agencies[route.AgencyID]; !ok {
-					return fmt.Errorf("route %s references unknown agency %s", route.ID, route.AgencyID)
-				} else {
-					a.route = append(a.route, strings.TrimSpace(route.ID))
-				}
-			}
 		}
 	}
 
 	if err != io.EOF {
-		return err
+		s.errors.add(fmt.Errorf("error reading routes file: %w", err))
 	}
-
-	return nil
 }
 
 func validateRoute(r Route) error {
