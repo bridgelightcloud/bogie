@@ -7,63 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetStructHeaders(t *testing.T) {
-	t.Parallel()
-
-	tt := []struct {
-		name     string
-		input    any
-		expected []string
-		err      error
-	}{{
-		name:     "empty",
-		input:    struct{}{},
-		expected: []string{},
-		err:      nil,
-	}, {
-		name:     "not a struct",
-		input:    []int{1, 2, 3},
-		expected: []string{},
-		err:      fmt.Errorf("GetStructHeaders: not a struct"),
-	}, {
-		name:     "simple",
-		input:    struct{ One string }{},
-		expected: []string{"One"},
-		err:      nil,
-	}, {
-		name: "complex",
-		input: struct {
-			One   string
-			Two   int
-			Three bool
-		}{},
-		expected: []string{"One", "Two", "Three"},
-		err:      nil,
-	}, {
-		name: "unexported",
-		input: struct {
-			One   string
-			two   int
-			Three bool
-		}{},
-		expected: []string{"One", "Three"},
-		err:      nil,
-	}}
-
-	for _, tc := range tt {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			assert := assert.New(t)
-
-			headers, err := GetStructHeaders(tc.input)
-			assert.Equal(tc.expected, headers)
-			assert.Equal(tc.err, err)
-		})
-	}
-}
-
 func TestMarshal(t *testing.T) {
 	t.Parallel()
 
@@ -81,12 +24,12 @@ func TestMarshal(t *testing.T) {
 		name:     "not a struct",
 		input:    []int{1, 2, 3},
 		expected: [][]string{},
-		err:      fmt.Errorf("GetStructHeaders: not a struct"),
+		err:      fmt.Errorf("cannot get headers: not a struct"),
 	}, {
 		name:     "not a slice",
 		input:    34,
 		expected: [][]string{},
-		err:      fmt.Errorf("Marshal: not a slice"),
+		err:      fmt.Errorf("cannot marshal: not a slice"),
 	}, {
 		name:     "simple",
 		input:    []struct{ One string }{{One: "one"}},

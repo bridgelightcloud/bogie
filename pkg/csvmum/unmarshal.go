@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 func Unmarshal(data [][]string, v any) error {
@@ -14,35 +13,24 @@ func Unmarshal(data [][]string, v any) error {
 
 	p := reflect.ValueOf(v)
 	if p.Kind() != reflect.Ptr {
-		return fmt.Errorf("not a pointer")
+		return fmt.Errorf("cannot unmarshal: not a pointer")
 	}
 
-	e := p.Elem()
-	t := e.Type()
-
-	ftoi := map[string]int{}
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-
-		if f.IsExported() {
-			name := f.Name
-			if tag, ok := f.Tag.Lookup("csv"); ok {
-				tags := strings.Split(tag, ",")
-				if len(tags) > 0 {
-					if t := tags[0]; t != "" {
-						name = tags[0]
-					}
-				}
-				if len(tags) > 1 {
-					switch tags[1] {
-					}
-				}
-			}
-			ftoi[name] = i
-		}
+	pe := p.Elem()
+	if pe.Kind() != reflect.Slice {
+		return fmt.Errorf("cannot unmarshal: not a pointer to a slice")
 	}
 
-	fmt.Printf("ftoi: %v\n", ftoi)
+	pet := pe.Type()
+	if pet.Elem().Kind() != reflect.Struct {
+		return fmt.Errorf("cannot marshal: not a pointer to a slice of structs")
+	}
+
+	typ := pet.Elem()
+	ftoi, err := getHeaderNamesToIndices(typ)
+	if err != nil {
+		return err
+	}
 
 	headers := data[0]
 	if len(headers) == 0 {
@@ -55,18 +43,22 @@ func Unmarshal(data [][]string, v any) error {
 			hm[i] = j
 		}
 	}
-
-	fmt.Printf("hm: %v\n", hm)
+	if len(hm) == 0 {
+		return fmt.Errorf("no headers matched")
+	}
 
 	for _, record := range data[1:] {
 		if len(record) == 0 {
 			continue
 		}
 		if len(record) != len(headers) {
-			return fmt.Errorf("record length mismatch")
+			fmt.Printf("record has %d fields, headers has %d\n", len(record), len(headers))
+			continue
 		}
+
+		n := reflect.New(typ).Elem()
 		for i, j := range hm {
-			f := e.Field(j)
+			f := n.Field(j)
 			switch f.Kind() {
 			case reflect.String:
 				f.SetString(record[i])
@@ -90,7 +82,7 @@ func Unmarshal(data [][]string, v any) error {
 				f.SetFloat(f64)
 			}
 		}
-		fmt.Printf("v: %v\n", v)
+		pe.Set(reflect.Append(pe, n))
 	}
 
 	return nil

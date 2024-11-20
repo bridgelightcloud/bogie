@@ -6,59 +6,49 @@ import (
 	"strconv"
 )
 
-func GetStructHeaders(v any) ([]string, error) {
-	headers := []string{}
-	if reflect.ValueOf(v).Kind() == reflect.Struct {
-		for i := 0; i < reflect.ValueOf(v).NumField(); i++ {
-			if reflect.TypeOf(v).Field(i).IsExported() {
-				headers = append(headers, fmt.Sprintf("%v", reflect.TypeOf(v).Field(i).Name))
-			}
-		}
-		return headers, nil
-	} else {
-		return headers, fmt.Errorf("GetStructHeaders: not a struct")
-	}
-}
-
 func Marshal(v any) ([][]string, error) {
 	out := [][]string{}
 
-	if val := reflect.ValueOf(v); val.Kind() == reflect.Slice {
-		len := val.Len()
-		if len == 0 {
-			return out, nil
-		}
+	s := reflect.ValueOf(v)
+	if s.Kind() != reflect.Slice {
+		return out, fmt.Errorf("cannot marshal: not a slice")
+	}
 
-		v := val.Index(0).Interface()
-		headers, err := GetStructHeaders(v)
-		if err != nil {
-			return out, err
-		}
-		out = append(out, headers)
+	len := s.Len()
+	if len == 0 {
+		return out, nil
+	}
 
-		for i := 0; i < len; i++ {
-			item := val.Index(i)
-			record := []string{}
-			for i := 0; i < item.NumField(); i++ {
-				field := item.Field(i)
-				if !item.Type().Field(i).IsExported() {
-					continue
-				}
-				switch field.Kind() {
-				case reflect.String:
-					record = append(record, fmt.Sprintf("%s", field.String()))
-				case reflect.Int:
-					record = append(record, fmt.Sprintf("%d", field.Int()))
-				case reflect.Bool:
-					record = append(record, fmt.Sprintf("%t", field.Bool()))
-				case reflect.Float64:
-					record = append(record, fmt.Sprintf("%s", strconv.FormatFloat(field.Float(), 'f', -1, 64)))
-				}
+	typ := reflect.ValueOf(s.Index(0).Interface()).Type()
+	hm, err := getHeaderNamesToIndices(typ)
+	if err != nil {
+		return out, err
+	}
+
+	hs := []string{}
+	for n := range hm {
+		hs = append(hs, n)
+	}
+
+	out = append(out, hs)
+
+	for i := 0; i < len; i++ {
+		item := s.Index(i)
+		record := []string{}
+		for _, i := range hm {
+			field := item.Field(i)
+			switch field.Kind() {
+			case reflect.String:
+				record = append(record, fmt.Sprintf("%s", field.String()))
+			case reflect.Int:
+				record = append(record, fmt.Sprintf("%d", field.Int()))
+			case reflect.Bool:
+				record = append(record, fmt.Sprintf("%t", field.Bool()))
+			case reflect.Float64:
+				record = append(record, fmt.Sprintf("%s", strconv.FormatFloat(field.Float(), 'f', -1, 64)))
 			}
-			out = append(out, record)
 		}
-	} else {
-		return out, fmt.Errorf("Marshal: not a slice")
+		out = append(out, record)
 	}
 
 	return out, nil
