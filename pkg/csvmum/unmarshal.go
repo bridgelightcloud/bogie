@@ -21,15 +21,10 @@ func Unmarshal(data [][]string, v any) error {
 		return fmt.Errorf("cannot unmarshal: not a pointer to a slice")
 	}
 
-	pet := pe.Type()
-	if pet.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("cannot unmarshal: not a pointer to a slice of structs")
-	}
-
-	typ := pet.Elem()
+	typ := pe.Type().Elem()
 	ftoi, err := getHeaderNamesToIndices(typ)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot unmarshal: %v", err)
 	}
 
 	headers := data[0]
