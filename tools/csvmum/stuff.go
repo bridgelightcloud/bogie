@@ -1,12 +1,11 @@
-package csvmum
+package main
 
 import (
 	"fmt"
 	"reflect"
 )
 
-func GetTypeFromSlice(v any) {
-	// expect v ro be a pointer to a slice
+func getTypeFromSlice(v any) {
 	p := reflect.ValueOf(v)
 	fmt.Printf("p: %v\n\n", p)
 
