@@ -23,7 +23,7 @@ func Unmarshal(data [][]string, v any) error {
 
 	pet := pe.Type()
 	if pet.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("cannot marshal: not a pointer to a slice of structs")
+		return fmt.Errorf("cannot unmarshal: not a pointer to a slice of structs")
 	}
 
 	typ := pet.Elem()
@@ -34,7 +34,7 @@ func Unmarshal(data [][]string, v any) error {
 
 	headers := data[0]
 	if len(headers) == 0 {
-		return fmt.Errorf("no headers")
+		return fmt.Errorf("cannot unmarshal: no headers")
 	}
 
 	hm := map[int]int{}
@@ -44,7 +44,7 @@ func Unmarshal(data [][]string, v any) error {
 		}
 	}
 	if len(hm) == 0 {
-		return fmt.Errorf("no headers matched")
+		return fmt.Errorf("cannot unmarshal: no headers matched")
 	}
 
 	for _, record := range data[1:] {
