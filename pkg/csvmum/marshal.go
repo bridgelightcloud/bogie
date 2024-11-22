@@ -14,8 +14,7 @@ func Marshal(v any) ([][]string, error) {
 		return out, fmt.Errorf("cannot marshal: not a slice")
 	}
 
-	len := s.Len()
-	if len == 0 {
+	if s.Len() == 0 {
 		return out, nil
 	}
 
@@ -25,18 +24,15 @@ func Marshal(v any) ([][]string, error) {
 		return out, err
 	}
 
-	hs := []string{}
-	for n := range hm {
-		hs = append(hs, n)
-	}
+	hs := getOrderedHeaders(hm)
 
 	out = append(out, hs)
 
-	for i := 0; i < len; i++ {
+	for i := range s.Len() {
 		item := s.Index(i)
 		record := []string{}
-		for _, i := range hm {
-			field := item.Field(i)
+		for _, n := range hs {
+			field := item.Field(hm[n])
 			switch field.Kind() {
 			case reflect.String:
 				record = append(record, fmt.Sprintf("%s", field.String()))
