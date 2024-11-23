@@ -36,6 +36,7 @@ func getExportedName(f reflect.StructField) string {
 					if tag != "" {
 						name = tag
 					}
+				// for future use
 				default:
 				}
 			}
