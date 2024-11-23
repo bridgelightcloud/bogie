@@ -13,23 +13,31 @@ func getHeaderNamesToIndices(t reflect.Type) (map[string]int, error) {
 	if t.Kind() != reflect.Struct {
 		return headers, fmt.Errorf("cannot get headers: not a struct")
 	}
+
 	for i := range t.NumField() {
 		f := t.Field(i)
-		if name := getExportedName(f); name != "" {
+		if name := getExportedName(f); name != "-" {
 			headers[name] = i
 		}
 	}
+
 	return headers, nil
 }
 
 func getExportedName(f reflect.StructField) string {
-	var name string
+	name := "-"
 	if f.IsExported() {
 		name = f.Name
 		if tag, ok := f.Tag.Lookup("csv"); ok {
 			tags := strings.Split(tag, ",")
-			if len(tags) > 0 {
-				name = tags[0]
+			for i, tag := range tags {
+				switch i {
+				case 0:
+					if tag != "" {
+						name = tag
+					}
+				default:
+				}
 			}
 		}
 	}

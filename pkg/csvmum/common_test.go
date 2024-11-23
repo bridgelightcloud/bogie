@@ -52,12 +52,27 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 	}, {
 		name: "tagged",
 		input: struct {
-			One   string `csv:"uno"`
-			Two   int    `csv:"dos"`
-			Three bool   `csv:""`
-			Four  string
+			One string `csv:"uno"`
+			Two int    `csv:"dos"`
 		}{},
-		expected: map[string]int{"uno": 0, "dos": 1, "Four": 3},
+		expected: map[string]int{"uno": 0, "dos": 1},
+		err:      nil,
+	}, {
+		name: "tagged but not exported",
+		input: struct {
+			One string `csv:"uno"`
+			two int    `csv:"dos"`
+		}{},
+		expected: map[string]int{"uno": 0},
+		err:      nil,
+	}, {
+		name: "tagged with hyphen -",
+		input: struct {
+			One string `csv:"-"`
+			Two int    `csv:"dos"`
+		}{},
+		expected: map[string]int{"dos": 1},
+		err:      nil,
 	}}
 
 	for _, tc := range tt {
@@ -84,7 +99,7 @@ func TestGetExportedName(t *testing.T) {
 	}{{
 		name:     "unexported",
 		input:    struct{ one string }{},
-		expected: "",
+		expected: "-",
 	}, {
 		name:     "exported",
 		input:    struct{ One string }{},
@@ -106,7 +121,13 @@ func TestGetExportedName(t *testing.T) {
 		input: struct {
 			One string `csv:""`
 		}{},
-		expected: "",
+		expected: "One",
+	}, {
+		name: "tagged -",
+		input: struct {
+			One string `csv:"-"`
+		}{},
+		expected: "-",
 	}}
 
 	for _, tc := range tt {
