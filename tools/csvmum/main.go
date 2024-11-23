@@ -1,12 +1,50 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/bridgelightcloud/bogie/pkg/csvmum"
 )
 
 func main() {
+	b()
+}
+
+func b() {
+	type a struct {
+		One   string `json:"one" csv:"one"`
+		Two   string `json:"" csv:""`
+		Three string `json:"-" csv:"-"`
+		four  string
+	}
+
+	_a := []a{{
+		One:   "{one}",
+		Two:   "{two}",
+		Three: "{three}",
+		four:  "{four}",
+	}, {
+		One:   "uno",
+		Two:   "dos",
+		Three: "tres",
+		four:  "cuatro",
+	}}
+
+	j, err := json.MarshalIndent(_a, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf("%s\n", j)
+
+	h, err := csvmum.Marshal(_a)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("h: %v\n", h)
+}
+
+func a() {
 	type Test struct {
 		One   string `csv:""`
 		Two   int
