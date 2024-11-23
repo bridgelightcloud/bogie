@@ -67,8 +67,8 @@ func parseSchedule(r *zip.ReadCloser) GTFSSchedule {
 
 	if f, ok := files["calendar.txt"]; !ok {
 		s.errors.add(fmt.Errorf("missing calendar.txt"))
-	} else if err := s.parseCalendar(f); err != nil {
-		s.errors.add(err)
+	} else {
+		s.parseCalendar(f)
 	}
 
 	if f, ok := files["calendar_dates.txt"]; !ok {
