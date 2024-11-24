@@ -4,6 +4,12 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
+)
+
+var (
+	timeType = reflect.TypeOf(time.Time{})
+	locType  = reflect.TypeOf(time.Location{})
 )
 
 func Unmarshal(data [][]string, v any) error {
@@ -22,7 +28,7 @@ func Unmarshal(data [][]string, v any) error {
 	}
 
 	typ := pe.Type().Elem()
-	ftoi, err := getHeaderNamesToIndices(typ)
+	hd, err := getHeaderData(typ)
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal: %v", err)
 	}
@@ -32,9 +38,9 @@ func Unmarshal(data [][]string, v any) error {
 		return fmt.Errorf("cannot unmarshal: no headers")
 	}
 
-	hm := map[int]int{}
+	hm := map[int]fieldData{}
 	for i, h := range headers {
-		if j, ok := ftoi[h]; ok {
+		if j, ok := hd[h]; ok {
 			hm[i] = j
 		}
 	}
@@ -53,7 +59,7 @@ func Unmarshal(data [][]string, v any) error {
 
 		n := reflect.New(typ).Elem()
 		for i, j := range hm {
-			f := n.Field(j)
+			f := n.Field(j.idx)
 			switch f.Kind() {
 			case reflect.String:
 				f.SetString(record[i])
@@ -75,6 +81,17 @@ func Unmarshal(data [][]string, v any) error {
 					fmt.Printf("error parsing float64: %v\n", err)
 				}
 				f.SetFloat(f64)
+			case reflect.Struct:
+				typ := f.Type()
+				switch typ {
+				case timeType:
+					t, err := time.Parse(j.timeLayout, record[i])
+					if err != nil {
+						fmt.Printf("error parsing time: %v\n", err)
+					}
+					f.Set(reflect.ValueOf(t))
+				default:
+				}
 			}
 		}
 		pe.Set(reflect.Append(pe, n))

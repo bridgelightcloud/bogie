@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 func Marshal(v any) ([][]string, error) {
@@ -19,12 +20,12 @@ func Marshal(v any) ([][]string, error) {
 	}
 
 	typ := reflect.ValueOf(s.Index(0).Interface()).Type()
-	hm, err := getHeaderNamesToIndices(typ)
+	hd, err := getHeaderData(typ)
 	if err != nil {
 		return out, err
 	}
 
-	hs := getOrderedHeaders(hm)
+	hs := getOrderedHeaders(hd)
 
 	out = append(out, hs)
 
@@ -32,7 +33,7 @@ func Marshal(v any) ([][]string, error) {
 		item := s.Index(i)
 		record := []string{}
 		for _, n := range hs {
-			field := item.Field(hm[n])
+			field := item.Field(hd[n].idx)
 			switch field.Kind() {
 			case reflect.String:
 				record = append(record, fmt.Sprintf("%s", field.String()))
@@ -42,6 +43,12 @@ func Marshal(v any) ([][]string, error) {
 				record = append(record, fmt.Sprintf("%t", field.Bool()))
 			case reflect.Float64:
 				record = append(record, fmt.Sprintf("%s", strconv.FormatFloat(field.Float(), 'f', -1, 64)))
+			case reflect.Struct:
+				switch field.Type() {
+				case timeType:
+					record = append(record, fmt.Sprintf("%s", field.Interface().(time.Time).Format(hd[n].timeLayout)))
+				default:
+				}
 			}
 		}
 		out = append(out, record)
