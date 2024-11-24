@@ -22,7 +22,7 @@ func Unmarshal(data [][]string, v any) error {
 	}
 
 	typ := pe.Type().Elem()
-	ftoi, err := getHeaderNamesToIndices(typ)
+	hd, err := getHeaderData(typ)
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal: %v", err)
 	}
@@ -32,9 +32,9 @@ func Unmarshal(data [][]string, v any) error {
 		return fmt.Errorf("cannot unmarshal: no headers")
 	}
 
-	hm := map[int]int{}
+	hm := map[int]fieldData{}
 	for i, h := range headers {
-		if j, ok := ftoi[h]; ok {
+		if j, ok := hd[h]; ok {
 			hm[i] = j
 		}
 	}
@@ -53,7 +53,7 @@ func Unmarshal(data [][]string, v any) error {
 
 		n := reflect.New(typ).Elem()
 		for i, j := range hm {
-			f := n.Field(j)
+			f := n.Field(j.idx)
 			switch f.Kind() {
 			case reflect.String:
 				f.SetString(record[i])

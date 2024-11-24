@@ -3,12 +3,28 @@ package csvmum
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
-func getHeaderNamesToIndices(t reflect.Type) (map[string]int, error) {
-	headers := map[string]int{}
+type fieldData struct {
+	name     string
+	exported bool
+	idx      int
+
+	timeLayout string
+}
+
+var builtin = regexp.MustCompile(`^(\w{1,2}):(.+)$`)
+
+var (
+	timeLayout = "tl"
+)
+
+func getHeaderData(t reflect.Type) (map[string]fieldData, error) {
+	headers := map[string]fieldData{}
 
 	if t.Kind() != reflect.Struct {
 		return headers, fmt.Errorf("cannot get headers: not a struct")
@@ -16,43 +32,71 @@ func getHeaderNamesToIndices(t reflect.Type) (map[string]int, error) {
 
 	for i := range t.NumField() {
 		f := t.Field(i)
-		if name := getExportedName(f); name != "-" {
-			headers[name] = i
+		fd := getFieldData(f, i)
+		if !fd.exported {
+			continue
 		}
+		headers[fd.name] = fd
 	}
 
 	return headers, nil
 }
 
-func getExportedName(f reflect.StructField) string {
-	name := "-"
+func getFieldData(f reflect.StructField, idx int) fieldData {
+	fd := initFieldData(f.Name, idx)
+
 	if f.IsExported() {
-		name = f.Name
+		fd.exported = true
+
 		if tag, ok := f.Tag.Lookup("csv"); ok {
 			tags := strings.Split(tag, ",")
 			for i, tag := range tags {
 				switch i {
+				// name is always first
 				case 0:
-					if tag != "" {
-						name = tag
+					switch tag {
+					case "-":
+						// ignore the field
+						fd.exported = false
+					case "":
+						// use the field name as the name
+					default:
+						// use the tag as the name
+						fd.name = tag
 					}
-				// for future use
+				// all other tags can be in any order
 				default:
+					b := builtin.FindStringSubmatch(tag)
+					if len(b) == 3 {
+						switch b[1] {
+						case timeLayout:
+							fd.timeLayout = b[2]
+						default:
+						}
+					}
 				}
 			}
 		}
 	}
-	return name
+	return fd
 }
 
-func getOrderedHeaders(hm map[string]int) []string {
+func initFieldData(n string, i int) fieldData {
+	return fieldData{
+		name:       n,
+		idx:        i,
+		timeLayout: time.RFC3339,
+	}
+}
+
+func getOrderedHeaders(hm map[string]fieldData) []string {
 	hh := make([]string, 0, len(hm))
 	for n := range hm {
 		hh = append(hh, n)
 	}
 
 	sort.SliceStable(hh, func(i, j int) bool {
-		return hm[hh[i]] < hm[hh[j]]
+		return hm[hh[i]].idx < hm[hh[j]].idx
 	})
 
 	return hh
