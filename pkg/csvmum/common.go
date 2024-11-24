@@ -43,7 +43,11 @@ func getHeaderData(t reflect.Type) (map[string]fieldData, error) {
 }
 
 func getFieldData(f reflect.StructField, idx int) fieldData {
-	fd := initFieldData(f.Name, idx)
+	fd := fieldData{
+		name:       f.Name,
+		idx:        idx,
+		timeLayout: time.RFC3339,
+	}
 
 	if f.IsExported() {
 		fd.exported = true
@@ -79,14 +83,6 @@ func getFieldData(f reflect.StructField, idx int) fieldData {
 		}
 	}
 	return fd
-}
-
-func initFieldData(n string, i int) fieldData {
-	return fieldData{
-		name:       n,
-		idx:        i,
-		timeLayout: time.RFC3339,
-	}
 }
 
 func getOrderedHeaders(hm map[string]fieldData) []string {
