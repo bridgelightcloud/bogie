@@ -4,33 +4,36 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetHeaderNamesToIndices(t *testing.T) {
+func TestGetHeaderData(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
 		name     string
 		input    any
-		expected map[string]int
+		expected map[string]fieldData
 		err      error
 	}{{
 		name:     "empty",
 		input:    struct{}{},
-		expected: map[string]int{},
+		expected: map[string]fieldData{},
 		err:      nil,
 	}, {
 		name:     "not a struct",
 		input:    []int{1, 2, 3},
-		expected: map[string]int{},
+		expected: map[string]fieldData{},
 		err:      fmt.Errorf("cannot get headers: not a struct"),
 	}, {
-		name:     "simple",
-		input:    struct{ One string }{},
-		expected: map[string]int{"One": 0},
-		err:      nil,
+		name:  "simple",
+		input: struct{ One string }{},
+		expected: map[string]fieldData{
+			"One": {name: "One", exported: true, idx: 0, timeLayout: time.RFC3339},
+		},
+		err: nil,
 	}, {
 		name: "complex",
 		input: struct {
@@ -38,8 +41,11 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 			Two   int
 			Three bool
 		}{},
-		expected: map[string]int{"One": 0, "Two": 1, "Three": 2},
-		err:      nil,
+		expected: map[string]fieldData{
+			"One":   {name: "One", exported: true, idx: 0, timeLayout: time.RFC3339},
+			"Two":   {name: "Two", exported: true, idx: 1, timeLayout: time.RFC3339},
+			"Three": {name: "Three", exported: true, idx: 2, timeLayout: time.RFC3339}},
+		err: nil,
 	}, {
 		name: "unexported",
 		input: struct {
@@ -47,23 +53,29 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 			two   int
 			Three bool
 		}{},
-		expected: map[string]int{"One": 0, "Three": 2},
-		err:      nil,
+		expected: map[string]fieldData{
+			"One":   {name: "One", exported: true, idx: 0, timeLayout: time.RFC3339},
+			"Three": {name: "Three", exported: true, idx: 2, timeLayout: time.RFC3339},
+		},
+		err: nil,
 	}, {
 		name: "tagged",
 		input: struct {
 			One string `csv:"uno"`
 			Two int    `csv:"dos"`
 		}{},
-		expected: map[string]int{"uno": 0, "dos": 1},
-		err:      nil,
+		expected: map[string]fieldData{
+			"uno": {name: "uno", exported: true, idx: 0, timeLayout: time.RFC3339},
+			"dos": {name: "dos", exported: true, idx: 1, timeLayout: time.RFC3339},
+		},
+		err: nil,
 	}, {
 		name: "tagged but not exported",
 		input: struct {
 			One string `csv:"uno"`
 			two int    `csv:"dos"`
 		}{},
-		expected: map[string]int{"uno": 0},
+		expected: map[string]fieldData{"uno": {name: "uno", exported: true, idx: 0, timeLayout: time.RFC3339}},
 		err:      nil,
 	}, {
 		name: "tagged with hyphen -",
@@ -71,7 +83,7 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 			One string `csv:"-"`
 			Two int    `csv:"dos"`
 		}{},
-		expected: map[string]int{"dos": 1},
+		expected: map[string]fieldData{"dos": {name: "dos", exported: true, idx: 1, timeLayout: time.RFC3339}},
 		err:      nil,
 	}}
 
@@ -82,52 +94,52 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 
 			assert := assert.New(t)
 
-			headers, err := getHeaderNamesToIndices(reflect.TypeOf(tc.input))
+			headers, err := getHeaderData(reflect.TypeOf(tc.input))
 			assert.Equal(tc.expected, headers)
 			assert.Equal(tc.err, err)
 		})
 	}
 }
 
-func TestGetExportedName(t *testing.T) {
+func TestGetFieldData(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
 		name     string
 		input    any
-		expected string
+		expected fieldData
 	}{{
 		name:     "unexported",
 		input:    struct{ one string }{},
-		expected: "-",
+		expected: fieldData{name: "one", exported: false, idx: 0, timeLayout: time.RFC3339},
 	}, {
 		name:     "exported",
 		input:    struct{ One string }{},
-		expected: "One",
+		expected: fieldData{name: "One", exported: true, idx: 0, timeLayout: time.RFC3339},
 	}, {
 		name: "tagged",
 		input: struct {
 			One string `csv:"uno"`
 		}{},
-		expected: "uno",
+		expected: fieldData{name: "uno", exported: true, idx: 0, timeLayout: time.RFC3339},
 	}, {
-		name: "tagged multiple",
+		name: "tagged with date format",
 		input: struct {
-			One string `csv:"uno,dos"`
+			One string `csv:"uno,tl:20060102"`
 		}{},
-		expected: "uno",
+		expected: fieldData{name: "uno", exported: true, idx: 0, timeLayout: "20060102"},
 	}, {
 		name: "tagged empty",
 		input: struct {
 			One string `csv:""`
 		}{},
-		expected: "One",
+		expected: fieldData{name: "One", exported: true, idx: 0, timeLayout: time.RFC3339},
 	}, {
 		name: "tagged -",
 		input: struct {
 			One string `csv:"-"`
 		}{},
-		expected: "-",
+		expected: fieldData{name: "One", exported: false, idx: 0, timeLayout: time.RFC3339},
 	}}
 
 	for _, tc := range tt {
@@ -139,8 +151,8 @@ func TestGetExportedName(t *testing.T) {
 
 			f := reflect.TypeOf(tc.input).Field(0)
 
-			name := getExportedName(f)
-			assert.Equal(tc.expected, name)
+			fd := getFieldData(f, 0)
+			assert.Equal(tc.expected, fd)
 		})
 	}
 }
@@ -150,23 +162,31 @@ func TestGetOrderedHeaders(t *testing.T) {
 
 	tt := []struct {
 		name     string
-		input    map[string]int
+		input    map[string]fieldData
 		expected []string
 	}{{
 		name:     "empty",
-		input:    map[string]int{},
+		input:    map[string]fieldData{},
 		expected: []string{},
 	}, {
 		name:     "simple",
-		input:    map[string]int{"One": 0},
+		input:    map[string]fieldData{"One": {name: "One"}},
 		expected: []string{"One"},
 	}, {
-		name:     "complex",
-		input:    map[string]int{"One": 0, "Two": 1, "Three": 2},
+		name: "complex",
+		input: map[string]fieldData{
+			"One":   {idx: 0},
+			"Two":   {idx: 1},
+			"Three": {idx: 2},
+		},
 		expected: []string{"One", "Two", "Three"},
 	}, {
-		name:     "unordered",
-		input:    map[string]int{"Two": 2, "One": 0, "Three": 7},
+		name: "unordered",
+		input: map[string]fieldData{
+			"Two":   {idx: 2},
+			"One":   {idx: 0},
+			"Three": {idx: 7},
+		},
 		expected: []string{"One", "Two", "Three"},
 	}}
 

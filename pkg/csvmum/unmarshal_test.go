@@ -3,6 +3,7 @@ package csvmum
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -143,6 +144,12 @@ func TestUnmarshal(t *testing.T) {
 		data: [][]string{{"A"}, {"three point one four"}},
 		v:    &[]struct{ A float64 }{},
 		res:  &[]struct{ A float64 }{{A: 0}},
+		err:  nil,
+	}, {
+		name: "invalid time",
+		data: [][]string{{"A"}, {"2024-14-35"}},
+		v:    &[]struct{ A time.Time }{},
+		res:  &[]struct{ A time.Time }{{A: time.Time{}}},
 		err:  nil,
 	}}
 
