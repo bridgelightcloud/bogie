@@ -55,9 +55,8 @@ func getFieldData(f reflect.StructField, idx int) fieldData {
 		if tag, ok := f.Tag.Lookup("csv"); ok {
 			tags := strings.Split(tag, ",")
 			for i, tag := range tags {
-				switch i {
-				// name is always first
-				case 0:
+				if i == 0 {
+					// name is always first
 					switch tag {
 					case "-":
 						// ignore the field
@@ -68,8 +67,8 @@ func getFieldData(f reflect.StructField, idx int) fieldData {
 						// use the tag as the name
 						fd.name = tag
 					}
-				// all other tags can be in any order
-				default:
+				} else {
+					// all other tags can be in any order
 					b := builtin.FindStringSubmatch(tag)
 					if len(b) == 3 {
 						switch b[1] {
