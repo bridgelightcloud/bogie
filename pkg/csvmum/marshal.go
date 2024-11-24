@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 func Marshal(v any) ([][]string, error) {
@@ -42,6 +43,12 @@ func Marshal(v any) ([][]string, error) {
 				record = append(record, fmt.Sprintf("%t", field.Bool()))
 			case reflect.Float64:
 				record = append(record, fmt.Sprintf("%s", strconv.FormatFloat(field.Float(), 'f', -1, 64)))
+			case reflect.Struct:
+				switch field.Type() {
+				case timeType:
+					record = append(record, fmt.Sprintf("%s", field.Interface().(time.Time).Format(hd[n].timeLayout)))
+				default:
+				}
 			}
 		}
 		out = append(out, record)

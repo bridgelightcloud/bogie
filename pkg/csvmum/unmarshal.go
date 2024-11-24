@@ -4,6 +4,12 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
+)
+
+var (
+	timeType = reflect.TypeOf(time.Time{})
+	locType  = reflect.TypeOf(time.Location{})
 )
 
 func Unmarshal(data [][]string, v any) error {
@@ -75,6 +81,17 @@ func Unmarshal(data [][]string, v any) error {
 					fmt.Printf("error parsing float64: %v\n", err)
 				}
 				f.SetFloat(f64)
+			case reflect.Struct:
+				typ := f.Type()
+				switch typ {
+				case timeType:
+					t, err := time.Parse(j.timeLayout, record[i])
+					if err != nil {
+						fmt.Printf("error parsing time: %v\n", err)
+					}
+					f.Set(reflect.ValueOf(t))
+				default:
+				}
 			}
 		}
 		pe.Set(reflect.Append(pe, n))
