@@ -195,8 +195,38 @@ func ParseCurrencyCode(v string, c *string) error {
 	return nil
 }
 
+type Date struct {
+	time.Time
+}
+
 var validDate = regexp.MustCompile(`^\d{8}$`)
 var dateFormat = "20060102"
+
+func (d Date) MarshalText() ([]byte, error) {
+	return []byte(d.Format(dateFormat)), nil
+}
+
+func (d *Date) UnmarshalText(text []byte) error {
+	p, err := time.Parse(dateFormat, string(text))
+	if err != nil {
+		return fmt.Errorf("invalid date value: %s", text)
+	}
+	d.Time = p
+	return nil
+}
+
+func (t Date) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d", t.Unix())), nil
+}
+
+func (d *Date) UnmarshalJSON(data []byte) error {
+	i, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid date value: %s", string(data))
+	}
+	*d = Date{time.Unix(i, 0)}
+	return nil
+}
 
 func ParseDate(v string, t *time.Time) error {
 	f := strings.TrimSpace(v)
@@ -213,8 +243,46 @@ func ParseDate(v string, t *time.Time) error {
 	return nil
 }
 
+type Time struct {
+	time.Time
+
+	plus24 bool
+}
+
 var validTime = regexp.MustCompile(`^\d{1,2}\:\d{2}\:\d{2}$`)
 var timeFormat = "15:04:05"
+
+func (t Time) MarshalText() ([]byte, error) {
+	return []byte(t.Format(timeFormat)), nil
+}
+
+func (t *Time) UnmarshalText(text []byte) error {
+	p, err := time.Parse(timeFormat, string(text))
+	if err != nil {
+		return fmt.Errorf("invalid time value: %s", text)
+	}
+	t.Time = p
+	return nil
+}
+
+func (t Time) MarshalJSON() ([]byte, error) {
+	if t.IsZero() {
+		return []byte("null"), nil
+	}
+	return []byte(fmt.Sprintf("%d", t.Unix())), nil
+}
+
+func (t *Time) UnmarshalJSON(data []byte) error {
+	if str := string(data); str == "null" {
+		t.Time = time.Time{}
+	} else if i, err := strconv.ParseInt(str, 10, 64); err == nil {
+		*t = Time{Time: time.Unix(i, 0)}
+	} else {
+		return fmt.Errorf("invalid time value: %s", str)
+	}
+
+	return nil
+}
 
 func ParseTime(v string, t *time.Time) error {
 	f := strings.TrimSpace(v)
