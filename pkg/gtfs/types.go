@@ -215,8 +215,8 @@ func (d *Date) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func (t Date) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf("%d", t.Unix())), nil
+func (d Date) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d", d.Unix())), nil
 }
 
 func (d *Date) UnmarshalJSON(data []byte) error {
