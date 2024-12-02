@@ -3,12 +3,53 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/bridgelightcloud/bogie/pkg/csvmum"
+	"github.com/bridgelightcloud/bogie/pkg/gtfs"
 )
 
 func main() {
-	b()
+	c()
+}
+
+type thing struct {
+	Date gtfs.Date `csv:"date"`
+	Time gtfs.Time `csv:"time"`
+
+	Heh string
+}
+
+func c() {
+	t := []thing{
+		{
+			Date: gtfs.Date{Time: time.Time{}},
+			Time: gtfs.Time{Time: time.Time{}},
+			Heh:  "heh",
+		},
+		{Date: gtfs.Date{Time: time.Date(2024, 11, 26, 14, 14, 0, 0, time.UTC)}, Heh: "heh"},
+		{Time: gtfs.Time{Time: time.Date(0, 0, 0, 14, 15, 23, 0, time.UTC)}},
+	}
+
+	out, err := csvmum.Marshal(t)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("out: %v\n", out)
+
+	td := [][]string{
+		{"date", "time", "Heh"},
+		{"20241126", "14:14:00", "heh"},
+		{"19860922", "14:15:23", ""},
+	}
+
+	var t2 []thing
+	err = csvmum.Unmarshal(td, &t2)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("t2: %v\n", t2)
+
 }
 
 func b() {
