@@ -1,6 +1,7 @@
 package csvmum
 
 import (
+	"encoding"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -33,6 +34,16 @@ func Marshal(v any) ([][]string, error) {
 		record := []string{}
 		for _, n := range hs {
 			field := item.Field(hm[n])
+
+			if m, ok := field.Interface().(encoding.TextMarshaler); ok {
+				b, err := m.MarshalText()
+				if err != nil {
+					return out, err
+				}
+				record = append(record, string(b))
+				continue
+			}
+
 			switch field.Kind() {
 			case reflect.String:
 				record = append(record, fmt.Sprintf("%s", field.String()))

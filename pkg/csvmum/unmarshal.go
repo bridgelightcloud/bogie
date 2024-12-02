@@ -1,6 +1,7 @@
 package csvmum
 
 import (
+	"encoding"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -54,6 +55,15 @@ func Unmarshal(data [][]string, v any) error {
 		n := reflect.New(typ).Elem()
 		for i, j := range hm {
 			f := n.Field(j)
+
+			if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
+				err := m.UnmarshalText([]byte(record[i]))
+				if err != nil {
+					return fmt.Errorf("cannot unmarshal: %v", err)
+				}
+				continue
+			}
+
 			switch f.Kind() {
 			case reflect.String:
 				f.SetString(record[i])
