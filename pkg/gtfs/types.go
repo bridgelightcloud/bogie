@@ -245,23 +245,47 @@ func ParseDate(v string, t *time.Time) error {
 
 type Time struct {
 	time.Time
-
-	plus24 bool
 }
 
-var validTime = regexp.MustCompile(`^\d{1,2}\:\d{2}\:\d{2}$`)
+var validTime = regexp.MustCompile(`^(\d{1,2})\:\d{2}\:\d{2}$`)
 var timeFormat = "15:04:05"
 
 func (t Time) MarshalText() ([]byte, error) {
-	return []byte(t.Format(timeFormat)), nil
+	timeStr := t.Format(timeFormat)
+
+	if d := t.Time.Day(); d > 1 {
+		hrs := strconv.Itoa(t.Hour() + 24)
+		return []byte(hrs + timeStr[2:]), nil
+	}
+
+	return []byte(timeStr), nil
 }
 
 func (t *Time) UnmarshalText(text []byte) error {
-	p, err := time.Parse(timeFormat, string(text))
+	timeStr := string(text)
+
+	p, err := time.Parse(timeFormat, timeStr)
+
 	if err != nil {
-		return fmt.Errorf("invalid time value: %s", text)
+		hrs := timeStr[:2]
+		h, err := strconv.Atoi(hrs)
+		if err != nil || h < 24 {
+			return fmt.Errorf("invalid time value: %s", text)
+		}
+
+		timeStr = strconv.Itoa(h-24) + timeStr[2:]
+
+		p, err = time.Parse(timeFormat, timeStr)
+
+		if err != nil {
+			return fmt.Errorf("invalid time value: %s", text)
+		}
+
+		t.Time = p.AddDate(0, 0, 1)
+	} else {
+		t.Time = p
 	}
-	t.Time = p
+
 	return nil
 }
 

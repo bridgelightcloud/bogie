@@ -438,12 +438,17 @@ func TestTimeMarshalText(t *testing.T) {
 		out  []byte
 		err  error
 	}{{
-		name: "valid date",
+		name: "time under 24 hrs",
 		time: Time{Time: time.Date(1, 1, 1, 12, 55, 30, 0, time.UTC)},
 		out:  []byte("12:55:30"),
 		err:  nil,
 	}, {
-		name: "zero date",
+		name: "time over 24 hrs",
+		time: Time{Time: time.Date(1, 1, 2, 1, 34, 22, 0, time.UTC)},
+		out:  []byte("25:34:22"),
+		err:  nil,
+	}, {
+		name: "zero time",
 		time: Time{Time: time.Time{}},
 		out:  []byte("00:00:00"),
 		err:  nil,
@@ -474,10 +479,14 @@ func TestTimeUnmarshalText(t *testing.T) {
 		time Time
 		err  error
 	}{{
-		name: "valid time",
+		name: "time under 24 hrs",
 		in:   []byte("17:23:22"),
 		time: Time{Time: time.Date(0, 1, 1, 17, 23, 22, 0, time.UTC)},
 		err:  nil,
+	}, {
+		name: "time over 24 hrs",
+		in:   []byte("25:34:22"),
+		time: Time{Time: time.Date(0, 1, 2, 1, 34, 22, 0, time.UTC)},
 	}, {
 		name: "zero time",
 		in:   []byte("00:00:00"),
@@ -489,6 +498,16 @@ func TestTimeUnmarshalText(t *testing.T) {
 		in:   []byte("09:34 AM"),
 		time: Time{Time: time.Time{}},
 		err:  fmt.Errorf("invalid time value: 09:34 AM"),
+	}, {
+		name: "invalid time over 24 hrs",
+		in:   []byte("24:77:22"),
+		time: Time{Time: time.Time{}},
+		err:  fmt.Errorf("invalid time value: 24:77:22"),
+	}, {
+		name: "invalid time under 48 hrs",
+		in:   []byte("48:34:22"),
+		time: Time{Time: time.Time{}},
+		err:  fmt.Errorf("invalid time value: 48:34:22"),
 	}}
 
 	for _, tc := range tt {
