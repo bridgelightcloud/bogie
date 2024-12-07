@@ -48,7 +48,6 @@ func Unmarshal(data [][]string, v any) error {
 			continue
 		}
 		if len(record) != len(headers) {
-			fmt.Printf("record has %d fields, headers has %d\n", len(record), len(headers))
 			continue
 		}
 

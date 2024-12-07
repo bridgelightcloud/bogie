@@ -24,7 +24,7 @@ func TestMarshal(t *testing.T) {
 		name:     "not a struct",
 		input:    []int{1, 2, 3},
 		expected: [][]string{},
-		err:      fmt.Errorf("cannot get headers: not a struct"),
+		err:      fmt.Errorf("cannot marshal: cannot get headers: not a struct"),
 	}, {
 		name:     "not a slice",
 		input:    34,
@@ -74,6 +74,10 @@ type customMarshal struct {
 }
 
 func (c customMarshal) MarshalText() ([]byte, error) {
+	if len(c.One) == 0 {
+		return []byte{}, fmt.Errorf("invalid text: %s", c.One)
+	}
+
 	return []byte(fmt.Sprintf("~%s~", c.One)), nil
 }
 
@@ -94,6 +98,11 @@ func TestMarshalTextMarshaler(t *testing.T) {
 		input:    []cs{{Field: customMarshal{One: "one"}}},
 		expected: [][]string{{"Field"}, {"~one~"}},
 		err:      nil,
+	}, {
+		name:     "invalid",
+		input:    []cs{{Field: customMarshal{One: ""}}},
+		expected: [][]string{{"Field"}},
+		err:      fmt.Errorf("cannot marshal: invalid text: "),
 	}}
 
 	for _, tc := range tt {
@@ -104,57 +113,6 @@ func TestMarshalTextMarshaler(t *testing.T) {
 			assert := assert.New(t)
 
 			out, err := Marshal(tc.input)
-			assert.Equal(tc.expected, out)
-			assert.Equal(tc.err, err)
-		})
-	}
-}
-
-type customUnmarshal struct {
-	One string
-}
-
-func (c *customUnmarshal) UnmarshalText(text []byte) error {
-	if len(text) < 2 {
-		return fmt.Errorf("invalid text: %s", string(text))
-	}
-	c.One = string(text[1 : len(text)-1])
-	return nil
-}
-
-func TestUnmarshalTextMarshaler(t *testing.T) {
-	t.Parallel()
-
-	type cs struct {
-		Field customUnmarshal
-	}
-
-	tt := []struct {
-		name     string
-		input    [][]string
-		expected []cs
-		err      error
-	}{{
-		name:     "simple",
-		input:    [][]string{{"Field"}, {"~one~"}},
-		expected: []cs{{Field: customUnmarshal{One: "one"}}},
-		err:      nil,
-	}, {
-		name:     "invalid text",
-		input:    [][]string{{"Field"}, {"~"}},
-		expected: []cs{},
-		err:      fmt.Errorf("cannot unmarshal: invalid text: ~"),
-	}}
-
-	for _, tc := range tt {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			assert := assert.New(t)
-
-			out := []cs{}
-			err := Unmarshal(tc.input, &out)
 			assert.Equal(tc.expected, out)
 			assert.Equal(tc.err, err)
 		})
