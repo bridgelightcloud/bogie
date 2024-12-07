@@ -22,7 +22,7 @@ func Marshal(v any) ([][]string, error) {
 	typ := reflect.ValueOf(s.Index(0).Interface()).Type()
 	hm, err := getHeaderNamesToIndices(typ)
 	if err != nil {
-		return out, fmt.Errorf("cannot marshal: %s", err)
+		return out, fmt.Errorf("cannot marshal: %w", err)
 	}
 
 	hs := getOrderedHeaders(hm)
@@ -38,7 +38,7 @@ func Marshal(v any) ([][]string, error) {
 			if m, ok := field.Interface().(encoding.TextMarshaler); ok {
 				b, err := m.MarshalText()
 				if err != nil {
-					return out, fmt.Errorf("cannot marshal: %s", err)
+					return out, fmt.Errorf("cannot marshal: %w", err)
 				}
 				record = append(record, string(b))
 				continue

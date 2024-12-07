@@ -35,7 +35,7 @@ func main() {
 
 	out, err := csvmum.Marshal(tt)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
+		fmt.Printf("Error: %w\n", err)
 	}
 	fmt.Printf("%d headers\n", len(out[0]))
 

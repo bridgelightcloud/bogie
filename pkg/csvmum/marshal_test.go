@@ -75,7 +75,7 @@ type customMarshal struct {
 
 func (c customMarshal) MarshalText() ([]byte, error) {
 	if len(c.One) == 0 {
-		return []byte{}, fmt.Errorf("invalid text: %s", c.One)
+		return nil, fmt.Errorf("invalid text: %s", c.One)
 	}
 
 	return []byte(fmt.Sprintf("~%s~", c.One)), nil
