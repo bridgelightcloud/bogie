@@ -159,3 +159,55 @@ func TestUnmarshal(t *testing.T) {
 		})
 	}
 }
+
+
+type customUnmarshal struct {
+	One string
+}
+
+func (c *customUnmarshal) UnmarshalText(text []byte) error {
+	if len(text) < 2 {
+		return fmt.Errorf("invalid text: %s", string(text))
+	}
+	c.One = string(text[1 : len(text)-1])
+	return nil
+}
+
+func TestUnmarshalTextMarshaler(t *testing.T) {
+	t.Parallel()
+
+	type cs struct {
+		Field customUnmarshal
+	}
+
+	tt := []struct {
+		name     string
+		input    [][]string
+		expected []cs
+		err      error
+	}{{
+		name:     "simple",
+		input:    [][]string{{"Field"}, {"~one~"}},
+		expected: []cs{{Field: customUnmarshal{One: "one"}}},
+		err:      nil,
+	}, {
+		name:     "invalid text",
+		input:    [][]string{{"Field"}, {"~"}},
+		expected: []cs{},
+		err:      fmt.Errorf("cannot unmarshal: invalid text: ~"),
+	}}
+
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert := assert.New(t)
+
+			out := []cs{}
+			err := Unmarshal(tc.input, &out)
+			assert.Equal(tc.expected, out)
+			assert.Equal(tc.err, err)
+		})
+	}
+}
