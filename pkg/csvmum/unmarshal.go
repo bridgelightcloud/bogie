@@ -58,7 +58,7 @@ func Unmarshal(data [][]string, v any) error {
 			if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
 				err := m.UnmarshalText([]byte(record[i]))
 				if err != nil {
-					return fmt.Errorf("cannot unmarshal: %v", err)
+					return fmt.Errorf("cannot unmarshal: %w", err)
 				}
 				continue
 			}
