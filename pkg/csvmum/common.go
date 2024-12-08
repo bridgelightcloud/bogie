@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func getHeaderNamesToIndices(t reflect.Type) (map[string]int, error) {
+func buildFieldMap(t reflect.Type) (map[string]int, error) {
 	headers := map[string]int{}
 
 	if t.Kind() != reflect.Struct {

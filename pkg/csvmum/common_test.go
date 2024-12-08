@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetHeaderNamesToIndices(t *testing.T) {
+func TestBuildFieldMap(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
@@ -82,7 +82,7 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 
 			assert := assert.New(t)
 
-			headers, err := getHeaderNamesToIndices(reflect.TypeOf(tc.input))
+			headers, err := buildFieldMap(reflect.TypeOf(tc.input))
 			assert.Equal(tc.expected, headers)
 			assert.Equal(tc.err, err)
 		})
