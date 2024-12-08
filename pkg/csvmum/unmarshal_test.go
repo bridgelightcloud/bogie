@@ -47,8 +47,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 		m, err := NewCSVUnmarshaler[testType](*c)
 
 		assert.Nil(err)
-		assert.Equal(map[int]int{0: 0, 1: 1}, m.headerMap)
-		assert.Equal(map[string]int{"First": 0, "Second": 1}, m.fieldMap)
+		assert.Equal([]int{0, 1}, m.fieldList)
 	})
 
 	t.Run("T is not a struct", func(t *testing.T) {
@@ -86,6 +85,48 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 		assert.NotNil(m)
 		assert.EqualError(err, "cannot unmarshal: csv: invalid field or comment delimiter")
 	})
+
+	t.Run("unexported field", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			second int
+			Third  bool
+		}
+
+		b := &bytes.Buffer{}
+		b.WriteString("First,second,Third\n")
+
+		c := csv.NewReader(b)
+		m, err := NewCSVUnmarshaler[testType](*c)
+
+		assert.NotNil(m)
+		assert.Equal([]int{0, -1, 2}, m.fieldList)
+		assert.Nil(err)
+	})
+
+	t.Run("fields out of order", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			Second int
+			Third  bool
+		}
+
+		b := &bytes.Buffer{}
+		b.WriteString("Second,First,Third\n")
+
+		c := csv.NewReader(b)
+		m, err := NewCSVUnmarshaler[testType](*c)
+
+		assert.NotNil(m)
+		assert.Equal([]int{1, 0, 2}, m.fieldList)
+		assert.Nil(err)
+	})
 }
 
 func TestNewUnmarshaler(t *testing.T) {
@@ -105,8 +146,7 @@ func TestNewUnmarshaler(t *testing.T) {
 	assert.NotNil(m)
 	assert.Nil(err)
 
-	assert.Equal(map[int]int{0: 0, 1: 1}, m.headerMap)
-	assert.Equal(map[string]int{"First": 0, "Second": 1}, m.fieldMap)
+	assert.Equal([]int{0, 1}, m.fieldList)
 }
 
 func TestUnmarshal(t *testing.T) {
@@ -292,4 +332,25 @@ func TestUnmarshal(t *testing.T) {
 		assert.EqualError(err, "cannot unmarshal: closed")
 	})
 
+	t.Run("unexported field", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			second int
+			Third  bool
+		}
+
+		b := &bytes.Buffer{}
+		b.WriteString("First,Second,Third\none,2,true\n")
+
+		m, _ := NewUnmarshaler[testType](b)
+
+		var record testType
+		err := m.Unmarshal(&record)
+
+		assert.Nil(err)
+		assert.Equal(testType{First: "one", Third: true}, record)
+	})
 }

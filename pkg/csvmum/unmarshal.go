@@ -11,8 +11,7 @@ import (
 
 type CSVUnmarshaler[T any] struct {
 	reader    csv.Reader
-	fieldMap  map[string]int
-	headerMap map[int]int
+	fieldList []int
 }
 
 func NewUnmarshaler[T any](r io.Reader) (*CSVUnmarshaler[T], error) {
@@ -29,7 +28,6 @@ func NewCSVUnmarshaler[T any](r csv.Reader) (*CSVUnmarshaler[T], error) {
 	if err != nil {
 		return um, fmt.Errorf("cannot unmarshal: %w", err)
 	}
-	um.fieldMap = fm
 
 	hh, err := um.reader.Read()
 	if err == io.EOF {
@@ -39,10 +37,12 @@ func NewCSVUnmarshaler[T any](r csv.Reader) (*CSVUnmarshaler[T], error) {
 		return um, fmt.Errorf("cannot unmarshal: %w", err)
 	}
 
-	um.headerMap = map[int]int{}
+	um.fieldList = make([]int, len(hh))
 	for i, h := range hh {
-		if j, ok := um.fieldMap[h]; ok {
-			um.headerMap[i] = j
+		if j, ok := fm[h]; ok {
+			um.fieldList[i] = j
+		} else {
+			um.fieldList[i] = -1
 		}
 	}
 
@@ -61,7 +61,11 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 	typ := reflect.TypeOf(*record)
 	n := reflect.New(typ).Elem()
 
-	for i, j := range um.headerMap {
+	for i, j := range um.fieldList {
+		if j == -1 {
+			continue
+		}
+
 		f := n.Field(j)
 
 		if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
