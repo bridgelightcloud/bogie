@@ -46,33 +46,32 @@ func NewCSVMarshaler[T any](w csv.Writer) (*CSVMarshaler[T], error) {
 
 func (m *CSVMarshaler[T]) Marshal(record T) error {
 	v := reflect.ValueOf(record)
-	r := make([]string, 0, len(m.fieldList))
+	row := make([]string, len(m.fieldList))
 
-	for _, i := range m.fieldList {
-		f := v.Field(i)
-		if m, ok := f.Interface().(encoding.TextMarshaler); ok {
-			b, err := m.MarshalText()
+	for ci, fi := range m.fieldList {
+		f := v.Field(fi)
+		if cm, ok := f.Interface().(encoding.TextMarshaler); ok {
+			b, err := cm.MarshalText()
 			if err != nil {
 				return fmt.Errorf("cannot marshal: %w", err)
 			}
-			r = append(r, string(b))
+			row[ci] = string(b)
 			continue
 		}
 
 		switch f.Kind() {
 		case reflect.String:
-			r = append(r, fmt.Sprintf("%s", f.String()))
+			row[ci] = fmt.Sprintf("%s", f.String())
 		case reflect.Int:
-			r = append(r, fmt.Sprintf("%d", f.Int()))
+			row[ci] = fmt.Sprintf("%d", f.Int())
 		case reflect.Bool:
-			r = append(r, fmt.Sprintf("%t", f.Bool()))
+			row[ci] = fmt.Sprintf("%t", f.Bool())
 		case reflect.Float64:
-			r = append(r, fmt.Sprintf("%s", strconv.FormatFloat(f.Float(), 'f', -1, 64)))
+			row[ci] = fmt.Sprintf("%s", strconv.FormatFloat(f.Float(), 'f', -1, 64))
 		}
 	}
 
-	err := m.writer.Write(r)
-	if err != nil {
+	if err := m.writer.Write(row); err != nil {
 		return fmt.Errorf("cannot marshal: %w", err)
 	}
 	return nil
