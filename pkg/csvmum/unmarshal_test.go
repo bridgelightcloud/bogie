@@ -24,7 +24,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 
 		b := &bytes.Buffer{}
 		c := csv.NewReader(b)
-		m, err := NewCSVUnmarshaler[testType](*c)
+		m, err := NewCSVUnmarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.Equal(io.EOF, err)
@@ -44,7 +44,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 		b.WriteString("First,Second\n")
 
 		c := csv.NewReader(b)
-		m, err := NewCSVUnmarshaler[testType](*c)
+		m, err := NewCSVUnmarshaler[testType](c)
 
 		assert.Nil(err)
 		assert.Equal([]int{0, 1}, m.fieldList)
@@ -59,7 +59,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 
 		b := &bytes.Buffer{}
 		c := csv.NewReader(b)
-		m, err := NewCSVUnmarshaler[testType](*c)
+		m, err := NewCSVUnmarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.EqualError(err, "cannot unmarshal: cannot get headers: not a struct")
@@ -80,7 +80,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 		c := csv.NewReader(b)
 		c.Comma = utf8.RuneError
 
-		m, err := NewCSVUnmarshaler[testType](*c)
+		m, err := NewCSVUnmarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.EqualError(err, "cannot unmarshal: csv: invalid field or comment delimiter")
@@ -100,7 +100,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 		b.WriteString("First,second,Third\n")
 
 		c := csv.NewReader(b)
-		m, err := NewCSVUnmarshaler[testType](*c)
+		m, err := NewCSVUnmarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.Equal([]int{0, -1, 2}, m.fieldList)
@@ -121,7 +121,7 @@ func TestNewCSVUnmarshaler(t *testing.T) {
 		b.WriteString("Second,First,Third\n")
 
 		c := csv.NewReader(b)
-		m, err := NewCSVUnmarshaler[testType](*c)
+		m, err := NewCSVUnmarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.Equal([]int{1, 0, 2}, m.fieldList)

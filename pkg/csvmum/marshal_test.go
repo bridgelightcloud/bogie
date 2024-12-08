@@ -23,11 +23,12 @@ func TestNewCSVMarshaler(t *testing.T) {
 
 		b := &bytes.Buffer{}
 		c := csv.NewWriter(b)
-		m, err := NewCSVMarshaler[testType](*c)
+		m, err := NewCSVMarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.Nil(err)
 
+		m.Flush()
 		assert.Equal([]byte("First,Second\n"), b.Bytes())
 	})
 
@@ -40,7 +41,7 @@ func TestNewCSVMarshaler(t *testing.T) {
 
 		b := &bytes.Buffer{}
 		c := csv.NewWriter(b)
-		m, err := NewCSVMarshaler[testType](*c)
+		m, err := NewCSVMarshaler[testType](c)
 
 		assert.NotNil(m)
 		assert.EqualError(err, "cannot marshal: cannot get headers: not a struct")
@@ -57,7 +58,7 @@ func TestNewCSVMarshaler(t *testing.T) {
 		c := csv.NewWriter(b)
 		c.Comma = utf8.RuneError
 
-		m, err := NewCSVMarshaler[struct{}](*c)
+		m, err := NewCSVMarshaler[struct{}](c)
 
 		assert.NotNil(m)
 		assert.EqualError(err, "cannot marshal: csv: invalid field or comment delimiter")
@@ -71,9 +72,11 @@ func TestNewCSVMarshaler(t *testing.T) {
 
 		var bw shortWriter
 		c := csv.NewWriter(bw)
-		m, err := NewCSVMarshaler[struct{}](*c)
+		m, err := NewCSVMarshaler[struct{}](c)
 
 		assert.NotNil(m)
+
+		err = m.Flush()
 		assert.EqualError(err, "cannot marshal: short write")
 	})
 }
@@ -94,6 +97,7 @@ func TestNewMarshaler(t *testing.T) {
 	assert.NotNil(m)
 	assert.Nil(err)
 
+	m.Flush()
 	assert.Equal([]byte("First,Second\n"), b.Bytes())
 }
 
@@ -135,7 +139,6 @@ func TestMarshal(t *testing.T) {
 		assert.Nil(err)
 
 		m.Flush()
-
 		assert.Equal([]byte("First,Second\none,1\n"), b.Bytes())
 	})
 
@@ -158,7 +161,6 @@ func TestMarshal(t *testing.T) {
 		assert.Nil(err)
 
 		m.Flush()
-
 		assert.Equal([]byte("First,Second,Third,Fourth\none,1,true,3.14\n"), b.Bytes())
 	})
 
@@ -180,7 +182,6 @@ func TestMarshal(t *testing.T) {
 		assert.Nil(err)
 
 		m.Flush()
-
 		assert.Equal([]byte("First,Third\none,67.3\n"), b.Bytes())
 	})
 
@@ -200,7 +201,6 @@ func TestMarshal(t *testing.T) {
 		assert.Nil(err)
 
 		m.Flush()
-
 		assert.Equal([]byte("Field\n~one~\n"), b.Bytes())
 	})
 
@@ -220,7 +220,6 @@ func TestMarshal(t *testing.T) {
 		assert.EqualError(err, "cannot marshal: invalid text: ")
 
 		m.Flush()
-
 		assert.Equal([]byte("Field\n"), b.Bytes())
 	})
 
@@ -242,7 +241,6 @@ func TestMarshal(t *testing.T) {
 		m.Marshal(testType{"one", 1})
 
 		err := m.Flush()
-
 		assert.EqualError(err, "cannot marshal: closed")
 	})
 
@@ -265,7 +263,6 @@ func TestMarshal(t *testing.T) {
 		assert.EqualError(err, "cannot marshal: csv: invalid field or comment delimiter")
 
 		m.Flush()
-
 		assert.Equal([]byte("First,Second\n"), b.Bytes())
 	})
 }

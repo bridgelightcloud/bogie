@@ -10,17 +10,17 @@ import (
 )
 
 type CSVMarshaler[T any] struct {
-	writer    csv.Writer
+	writer    *csv.Writer
 	fieldList []int
 }
 
 func NewMarshaler[T any](w io.Writer) (*CSVMarshaler[T], error) {
 	c := csv.NewWriter(w)
 
-	return NewCSVMarshaler[T](*c)
+	return NewCSVMarshaler[T](c)
 }
 
-func NewCSVMarshaler[T any](w csv.Writer) (*CSVMarshaler[T], error) {
+func NewCSVMarshaler[T any](w *csv.Writer) (*CSVMarshaler[T], error) {
 	m := &CSVMarshaler[T]{writer: w}
 
 	var t T
@@ -33,13 +33,8 @@ func NewCSVMarshaler[T any](w csv.Writer) (*CSVMarshaler[T], error) {
 	if err = m.writer.Write(hh); err != nil {
 		return m, fmt.Errorf("cannot marshal: %w", err)
 	}
-	m.writer.Flush()
 
 	m.fieldList = fl
-
-	if err = m.writer.Error(); err != nil {
-		return m, fmt.Errorf("cannot marshal: %w", err)
-	}
 
 	return m, nil
 }

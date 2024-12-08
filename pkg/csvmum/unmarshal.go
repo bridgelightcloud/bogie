@@ -10,17 +10,17 @@ import (
 )
 
 type CSVUnmarshaler[T any] struct {
-	reader    csv.Reader
+	reader    *csv.Reader
 	fieldList []int
 }
 
 func NewUnmarshaler[T any](r io.Reader) (*CSVUnmarshaler[T], error) {
 	c := csv.NewReader(r)
-	return NewCSVUnmarshaler[T](*c)
+	return NewCSVUnmarshaler[T](c)
 
 }
 
-func NewCSVUnmarshaler[T any](r csv.Reader) (*CSVUnmarshaler[T], error) {
+func NewCSVUnmarshaler[T any](r *csv.Reader) (*CSVUnmarshaler[T], error) {
 	um := &CSVUnmarshaler[T]{reader: r}
 
 	var t T
@@ -69,8 +69,7 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 		f := n.Field(j)
 
 		if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
-			err := m.UnmarshalText([]byte(r[i]))
-			if err != nil {
+			if err := m.UnmarshalText([]byte(r[i])); err != nil {
 				return fmt.Errorf("cannot unmarshal: %w", err)
 			}
 			continue
