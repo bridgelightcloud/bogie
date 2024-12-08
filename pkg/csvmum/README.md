@@ -1,53 +1,65 @@
 # CSVMUM
 CSV Marshal/Unmarshal
 
-Working branch [csvmum](https://github.com/bridgelightcloud/bogie/blob/csvmum/pkg/csvmum/README.md)
-
 CSVMUM can convert a slice or map of structs into a slice of slices of strings, which can then be written with `csv.Write`
+
+## Marshal
 
 Example
 
 ```go
-package main
-
-import (
-	"encoding/csv"
-	"fmt"
-	"os"
-
-	"github.com/bridgelightcloud/bogie/pkg/csvmum"
-)
-
-func main() {
-	type Test struct {
-		One   string
-		Two   int
-		Three bool
-
-		four float64
-	}
-
-	tt := []Test{
-		{One: "one", Two: 1},
-		{One: "two", Two: 2, Three: true},
-		{One: "three", four: 4.0},
-	}
-
-	out, err := csvmum.Marshal(tt)
+func marshal() {
+	csvm, err := csvmum.NewMarshaler[testD](os.Stdout)
 	if err != nil {
-		fmt.Printf("Error: %w\n", err)
+		panic(err)
 	}
-	fmt.Printf("%d headers\n", len(out[0]))
 
-	csv.NewWriter(os.Stdout).WriteAll(out)
+	csvm.Marshal(testD{One: "uno", Two: "dos"})
+	csvm.Marshal(testD{One: "1", Two: "2"})
+	csvm.Flush()
 }
 ```
 
 Output
 ```
-3 headers
-One,Two,Three
-one,1,false
-two,2,true
-three,0,false
+td: {uno dos}
+td: {1 2}
+```
+
+## Unmarshal
+
+Example
+
+```go
+func unmarshal() {
+	r := bytes.NewBuffer([]byte("one,two\nuno,dos\n1,2\n"))
+	csvu, err := csvmum.NewUnmarshaler[testD](r)
+	if err != nil {
+		panic(err)
+	}
+
+	tds := []testD{}
+	for {
+		var td testD
+		err = csvu.Unmarshal(&td)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		tds = append(tds, td)
+	}
+
+	for _, td := range tds {
+		fmt.Printf("td: %v\n", td)
+	}
+}
+```
+
+Output
+```
+one,two
+uno,dos
+1,2
 ```
