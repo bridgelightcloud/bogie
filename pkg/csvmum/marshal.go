@@ -10,9 +10,8 @@ import (
 )
 
 type CSVMarshaler[T any] struct {
-	writer   csv.Writer
-	fieldMap map[string]int
-	headers  []string
+	writer    csv.Writer
+	fieldList []int
 }
 
 func NewMarshaler[T any](w io.Writer) (*CSVMarshaler[T], error) {
@@ -29,12 +28,14 @@ func NewCSVMarshaler[T any](w csv.Writer) (*CSVMarshaler[T], error) {
 	if err != nil {
 		return m, fmt.Errorf("cannot marshal: %w", err)
 	}
-	m.fieldMap = hm
 
-	if err = m.writeHeader(); err != nil {
+	hh, fl := getOrderedHeaders(hm)
+	if err = m.writer.Write(hh); err != nil {
 		return m, fmt.Errorf("cannot marshal: %w", err)
 	}
 	m.writer.Flush()
+
+	m.fieldList = fl
 
 	if err = m.writer.Error(); err != nil {
 		return m, fmt.Errorf("cannot marshal: %w", err)
@@ -45,10 +46,10 @@ func NewCSVMarshaler[T any](w csv.Writer) (*CSVMarshaler[T], error) {
 
 func (m *CSVMarshaler[T]) Marshal(record T) error {
 	v := reflect.ValueOf(record)
-	r := make([]string, 0, len(m.fieldMap))
+	r := make([]string, 0, len(m.fieldList))
 
-	for _, n := range m.headers {
-		f := v.Field(m.fieldMap[n])
+	for _, i := range m.fieldList {
+		f := v.Field(i)
 		if m, ok := f.Interface().(encoding.TextMarshaler); ok {
 			b, err := m.MarshalText()
 			if err != nil {
@@ -85,9 +86,4 @@ func (m *CSVMarshaler[T]) Flush() error {
 	}
 
 	return nil
-}
-
-func (m *CSVMarshaler[T]) writeHeader() error {
-	m.headers = getOrderedHeaders(m.fieldMap)
-	return m.writer.Write(m.headers)
 }

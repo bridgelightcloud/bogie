@@ -45,15 +45,19 @@ func getExportedName(f reflect.StructField) string {
 	return name
 }
 
-func getOrderedHeaders(hm map[string]int) []string {
+func getOrderedHeaders(hm map[string]int) ([]string, []int) {
 	hh := make([]string, 0, len(hm))
-	for n := range hm {
+	fl := make([]int, 0, len(hm))
+
+	for n, i := range hm {
 		hh = append(hh, n)
+		fl = append(fl, i)
 	}
 
 	sort.SliceStable(hh, func(i, j int) bool {
 		return hm[hh[i]] < hm[hh[j]]
 	})
+	sort.Ints(fl)
 
-	return hh
+	return hh, fl
 }
