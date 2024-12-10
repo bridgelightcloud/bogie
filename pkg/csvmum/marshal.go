@@ -2,61 +2,82 @@ package csvmum
 
 import (
 	"encoding"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 )
 
-func Marshal(v any) ([][]string, error) {
-	out := [][]string{}
+type CSVMarshaler[T any] struct {
+	writer    *csv.Writer
+	fieldList []int
+}
 
-	s := reflect.ValueOf(v)
-	if s.Kind() != reflect.Slice {
-		return out, fmt.Errorf("cannot marshal: not a slice")
-	}
+func NewMarshaler[T any](w io.Writer) (*CSVMarshaler[T], error) {
+	c := csv.NewWriter(w)
 
-	if s.Len() == 0 {
-		return out, nil
-	}
+	return NewCSVMarshaler[T](c)
+}
 
-	typ := reflect.ValueOf(s.Index(0).Interface()).Type()
-	hm, err := getHeaderNamesToIndices(typ)
+func NewCSVMarshaler[T any](w *csv.Writer) (*CSVMarshaler[T], error) {
+	m := &CSVMarshaler[T]{writer: w}
+
+	var t T
+	hm, err := buildFieldMap(reflect.TypeOf(t))
 	if err != nil {
-		return out, fmt.Errorf("cannot marshal: %w", err)
+		return m, fmt.Errorf("cannot marshal: %w", err)
 	}
 
-	hs := getOrderedHeaders(hm)
+	hh, fl := getOrderedHeaders(hm)
+	if err = m.writer.Write(hh); err != nil {
+		return m, fmt.Errorf("cannot marshal: %w", err)
+	}
 
-	out = append(out, hs)
+	m.fieldList = fl
 
-	for i := range s.Len() {
-		item := s.Index(i)
-		record := []string{}
-		for _, n := range hs {
-			field := item.Field(hm[n])
+	return m, nil
+}
 
-			if m, ok := field.Interface().(encoding.TextMarshaler); ok {
-				b, err := m.MarshalText()
-				if err != nil {
-					return out, fmt.Errorf("cannot marshal: %w", err)
-				}
-				record = append(record, string(b))
-				continue
+func (m *CSVMarshaler[T]) Marshal(record T) error {
+	v := reflect.ValueOf(record)
+	row := make([]string, len(m.fieldList))
+
+	for ci, fi := range m.fieldList {
+		f := v.Field(fi)
+		if cm, ok := f.Interface().(encoding.TextMarshaler); ok {
+			b, err := cm.MarshalText()
+			if err != nil {
+				return fmt.Errorf("cannot marshal: %w", err)
 			}
-
-			switch field.Kind() {
-			case reflect.String:
-				record = append(record, fmt.Sprintf("%s", field.String()))
-			case reflect.Int:
-				record = append(record, fmt.Sprintf("%d", field.Int()))
-			case reflect.Bool:
-				record = append(record, fmt.Sprintf("%t", field.Bool()))
-			case reflect.Float64:
-				record = append(record, fmt.Sprintf("%s", strconv.FormatFloat(field.Float(), 'f', -1, 64)))
-			}
+			row[ci] = string(b)
+			continue
 		}
-		out = append(out, record)
+
+		switch f.Kind() {
+		case reflect.String:
+			row[ci] = fmt.Sprintf("%s", f.String())
+		case reflect.Int:
+			row[ci] = fmt.Sprintf("%d", f.Int())
+		case reflect.Bool:
+			row[ci] = fmt.Sprintf("%t", f.Bool())
+		case reflect.Float64:
+			row[ci] = fmt.Sprintf("%s", strconv.FormatFloat(f.Float(), 'f', -1, 64))
+		}
 	}
 
-	return out, nil
+	if err := m.writer.Write(row); err != nil {
+		return fmt.Errorf("cannot marshal: %w", err)
+	}
+	return nil
+}
+
+func (m *CSVMarshaler[T]) Flush() error {
+	m.writer.Flush()
+
+	if err := m.writer.Error(); err != nil {
+		return fmt.Errorf("cannot marshal: %w", err)
+	}
+
+	return nil
 }

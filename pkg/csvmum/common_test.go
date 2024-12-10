@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetHeaderNamesToIndices(t *testing.T) {
+func TestBuildFieldMap(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
@@ -82,7 +82,7 @@ func TestGetHeaderNamesToIndices(t *testing.T) {
 
 			assert := assert.New(t)
 
-			headers, err := getHeaderNamesToIndices(reflect.TypeOf(tc.input))
+			headers, err := buildFieldMap(reflect.TypeOf(tc.input))
 			assert.Equal(tc.expected, headers)
 			assert.Equal(tc.err, err)
 		})
@@ -149,36 +149,41 @@ func TestGetOrderedHeaders(t *testing.T) {
 	t.Parallel()
 
 	tt := []struct {
-		name     string
-		input    map[string]int
-		expected []string
+		name          string
+		input         map[string]int
+		expHeaderList []string
+		expFieldList  []int
 	}{{
-		name:     "empty",
-		input:    map[string]int{},
-		expected: []string{},
+		name:          "empty",
+		input:         map[string]int{},
+		expHeaderList: []string{},
+		expFieldList:  []int{},
 	}, {
-		name:     "simple",
-		input:    map[string]int{"One": 0},
-		expected: []string{"One"},
+		name:          "simple",
+		input:         map[string]int{"One": 0},
+		expHeaderList: []string{"One"},
+		expFieldList:  []int{0},
 	}, {
-		name:     "complex",
-		input:    map[string]int{"One": 0, "Two": 1, "Three": 2},
-		expected: []string{"One", "Two", "Three"},
+		name:          "complex",
+		input:         map[string]int{"One": 0, "Two": 1, "Three": 2},
+		expHeaderList: []string{"One", "Two", "Three"},
+		expFieldList:  []int{0, 1, 2},
 	}, {
-		name:     "unordered",
-		input:    map[string]int{"Two": 2, "One": 0, "Three": 7},
-		expected: []string{"One", "Two", "Three"},
+		name:          "unordered",
+		input:         map[string]int{"Two": 2, "One": 0, "Three": 7},
+		expHeaderList: []string{"One", "Two", "Three"},
+		expFieldList:  []int{0, 2, 7},
 	}}
 
 	for _, tc := range tt {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
 			assert := assert.New(t)
 
-			headers := getOrderedHeaders(tc.input)
-			assert.Equal(tc.expected, headers)
+			hl, fl := getOrderedHeaders(tc.input)
+			assert.Equal(tc.expHeaderList, hl)
+			assert.Equal(tc.expFieldList, fl)
 		})
 	}
 }
