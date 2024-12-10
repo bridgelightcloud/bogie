@@ -1,53 +1,113 @@
 # CSVMUM
 CSV Marshal/Unmarshal
 
-Working branch [csvmum](https://github.com/bridgelightcloud/bogie/blob/csvmum/pkg/csvmum/README.md)
+CSVMUM is a CSV marshaler/unmarshaler. 
 
-CSVMUM can convert a slice or map of structs into a slice of slices of strings, which can then be written with `csv.Write`
+## Marshal
 
 Example
 
 ```go
-package main
-
-import (
-	"encoding/csv"
-	"fmt"
-	"os"
-
-	"github.com/bridgelightcloud/bogie/pkg/csvmum"
-)
-
-func main() {
-	type Test struct {
-		One   string
-		Two   int
-		Three bool
-
-		four float64
+func marshal() {
+	type person struct {
+		Name string `csv:"name"`
+		Age  int    `csv:"age"`
 	}
 
-	tt := []Test{
-		{One: "one", Two: 1},
-		{One: "two", Two: 2, Three: true},
-		{One: "three", four: 4.0},
-	}
-
-	out, err := csvmum.Marshal(tt)
+	csvm, err := csvmum.NewMarshaler[person](os.Stdout)
 	if err != nil {
-		fmt.Printf("Error: %w\n", err)
+		panic(err)
 	}
-	fmt.Printf("%d headers\n", len(out[0]))
 
-	csv.NewWriter(os.Stdout).WriteAll(out)
+	csvm.Marshal(person{Name: "Seanny Phoenix", Age: 38})
+	csvm.Marshal(person{Name: "Somebody", Age: 27})
+	csvm.Flush()
 }
 ```
 
 Output
 ```
-3 headers
-One,Two,Three
-one,1,false
-two,2,true
-three,0,false
+name,age
+Seanny Phoenix,38
+Somebody,27
+```
+
+## Unmarshal
+
+Flush must be called for the csv writer to write to the underlying writer.
+
+Example
+
+```go
+func unmarshal() {
+	type person struct {
+		Name string `csv:"name"`
+		Age  int    `csv:"age"`
+	}
+
+	r := bytes.NewBuffer([]byte("name,age\nNobody,0\nSpot,2\n"))
+	csvu, err := csvmum.NewUnmarshaler[person](r)
+	if err != nil {
+		panic(err)
+	}
+
+	pp := []person{}
+	for {
+		var p person
+		err = csvu.Unmarshal(&p)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+		pp = append(pp, p)
+	}
+
+	fmt.Println(pp)
+}
+```
+
+Output
+```
+[{Nobody 0} {Spot 2}]
+```
+
+## Tags
+
+The `csv` tag can be used in structs to define the column name for a field. As with `json.Marshal` and `json.Unmarshal`, a field tagged with a hyphen (`-`) will be ignored.
+
+Example
+
+```go
+func tags() {
+	type tagged struct {
+		AsIs       string  // marshaled as "AsIs"
+		Renamed    float64 `csv:"renamed"` // marshaled as "renamed"
+		unexported int     // not marshaled
+		Ignored    bool    `csv:"-"` // not marshaled
+	}
+
+	taggedData := tagged{
+		AsIs:       "as is",
+		Renamed:    27.72,
+		unexported: 2,
+		Ignored:    true,
+	}
+
+	csvm, err := csvmum.NewMarshaler[tagged](os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+
+	csvm.Marshal(taggedData)
+	csvm.Flush()
+}
+```
+
+Output
+
+```
+AsIs,renamed
+as is,27.72
 ```
