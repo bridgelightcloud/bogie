@@ -10,44 +10,75 @@ import (
 )
 
 func main() {
-	marshal()
 	unmarshal()
 }
 
-func marshal() {
-	csvm, err := csvmum.NewMarshaler[testD](os.Stdout)
+func tags() {
+	type tagged struct {
+		AsIs       string  // marshaled as "AsIs"
+		Renamed    float64 `csv:"renamed"` // marshaled as "renamed"
+		unexported int     // not marshaled
+		Ignored    bool    `csv:"-"` // not marshaled
+	}
+
+	taggedData := tagged{
+		AsIs:       "as is",
+		Renamed:    27.72,
+		unexported: 2,
+		Ignored:    true,
+	}
+
+	csvm, err := csvmum.NewMarshaler[tagged](os.Stdout)
 	if err != nil {
 		panic(err)
 	}
 
-	csvm.Marshal(testD{One: "uno", Two: "dos"})
-	csvm.Marshal(testD{One: "1", Two: "2"})
+	csvm.Marshal(taggedData)
+	csvm.Flush()
+}
+
+func marshal() {
+	type person struct {
+		Name string `csv:"name"`
+		Age  int    `csv:"age"`
+	}
+
+	csvm, err := csvmum.NewMarshaler[person](os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+
+	csvm.Marshal(person{Name: "Seanny Phoenix", Age: 38})
+	csvm.Marshal(person{Name: "Somebody", Age: 27})
 	csvm.Flush()
 }
 
 func unmarshal() {
-	r := bytes.NewBuffer([]byte("one,two\nuno,dos\n1,2\n"))
-	csvu, err := csvmum.NewUnmarshaler[testD](r)
+	type person struct {
+		Name string `csv:"name"`
+		Age  int    `csv:"age"`
+	}
+
+	r := bytes.NewBuffer([]byte("name,age\nNobody,0\nSpot,2\n"))
+	csvu, err := csvmum.NewUnmarshaler[person](r)
 	if err != nil {
 		panic(err)
 	}
 
-	tds := []testD{}
+	pp := []person{}
 	for {
-		var td testD
-		err = csvu.Unmarshal(&td)
+		var p person
+		err = csvu.Unmarshal(&p)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			panic(err)
 		}
-		tds = append(tds, td)
+		pp = append(pp, p)
 	}
 
-	for _, td := range tds {
-		fmt.Printf("td: %v\n", td)
-	}
+	fmt.Println(pp)
 }
 
 func e() {

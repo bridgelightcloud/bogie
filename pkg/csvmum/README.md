@@ -1,7 +1,7 @@
 # CSVMUM
 CSV Marshal/Unmarshal
 
-CSVMUM can convert a slice or map of structs into a slice of slices of strings, which can then be written with `csv.Write`
+CSVMUM is a CSV marshaler/unmarshaler. 
 
 ## Marshal
 
@@ -9,57 +9,105 @@ Example
 
 ```go
 func marshal() {
-	csvm, err := csvmum.NewMarshaler[testD](os.Stdout)
+	type person struct {
+		Name string `csv:"name"`
+		Age  int    `csv:"age"`
+	}
+
+	csvm, err := csvmum.NewMarshaler[person](os.Stdout)
 	if err != nil {
 		panic(err)
 	}
 
-	csvm.Marshal(testD{One: "uno", Two: "dos"})
-	csvm.Marshal(testD{One: "1", Two: "2"})
+	csvm.Marshal(person{Name: "Seanny Phoenix", Age: 38})
+	csvm.Marshal(person{Name: "Somebody", Age: 27})
 	csvm.Flush()
 }
 ```
 
 Output
 ```
-td: {uno dos}
-td: {1 2}
+name,age
+Seanny Phoenix,38
+Somebody,27
 ```
 
 ## Unmarshal
+
+Flush must be called for the csv writer to write to the underlying writer.
 
 Example
 
 ```go
 func unmarshal() {
-	r := bytes.NewBuffer([]byte("one,two\nuno,dos\n1,2\n"))
-	csvu, err := csvmum.NewUnmarshaler[testD](r)
+	type person struct {
+		Name string `csv:"name"`
+		Age  int    `csv:"age"`
+	}
+
+	r := bytes.NewBuffer([]byte("name,age\nNobody,0\nSpot,2\n"))
+	csvu, err := csvmum.NewUnmarshaler[person](r)
 	if err != nil {
 		panic(err)
 	}
 
-	tds := []testD{}
+	pp := []person{}
 	for {
-		var td testD
-		err = csvu.Unmarshal(&td)
+		var p person
+		err = csvu.Unmarshal(&p)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			panic(err)
 		}
-		tds = append(tds, td)
+		pp = append(pp, p)
 	}
 
-	for _, td := range tds {
-		fmt.Printf("td: %v\n", td)
-	}
+	fmt.Println(pp)
 }
 ```
 
 Output
 ```
-one,two
-uno,dos
-1,2
+[{Nobody 0} {Spot 2}]
+```
+
+## Tags
+
+The `csv` tag can be used in structs to define the column name for a field. As with `json.Marshal` and `json.Unmarshal`, a field tagged with a hyphen (`-`) will be ignored.
+
+Example
+
+```go
+func tags() {
+	type tagged struct {
+		AsIs       string  // marshaled as "AsIs"
+		Renamed    float64 `csv:"renamed"` // marshaled as "renamed"
+		unexported int     // not marshaled
+		Ignored    bool    `csv:"-"` // not marshaled
+	}
+
+	taggedData := tagged{
+		AsIs:       "as is",
+		Renamed:    27.72,
+		unexported: 2,
+		Ignored:    true,
+	}
+
+	csvm, err := csvmum.NewMarshaler[tagged](os.Stdout)
+	if err != nil {
+		panic(err)
+	}
+
+	csvm.Marshal(taggedData)
+	csvm.Flush()
+}
+```
+
+Output
+
+```
+AsIs,renamed
+as is,27.72
 ```
