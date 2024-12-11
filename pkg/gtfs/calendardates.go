@@ -27,7 +27,7 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 
 	rc, err := file.Open()
 	if err != nil {
-		s.errors.add( err)
+		s.errors.add(err)
 		return err
 	}
 	defer rc.Close()
@@ -40,7 +40,7 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 		return ErrEmptyCalendarDatesFile
 	}
 	if err != nil {
-		s.errors.add( err)
+		s.errors.add(err)
 		return err
 	}
 
@@ -61,9 +61,11 @@ func (s *GTFSSchedule) parseCalendarDates(file *zip.File) error {
 			case "service_id":
 				ParseString(v, &cd.ServiceID)
 			case "date":
-				if err := ParseDate(v, &cd.Date); err != nil {
-					s.errors.add( fmt.Errorf("invalid date at line %d: %w", i, err))
+				t, err := time.Parse(dateFormat, v)
+				if err != nil {
+					s.errors.add(fmt.Errorf("invalid date at line %d: %w", i, err))
 				}
+				cd.Date = t
 			case "exception_type":
 				if err := ParseEnum(v, ExceptionType, &cd.ExceptionType); err != nil {
 					s.errors.add(fmt.Errorf("invalid exception_type at line %d: %w", i, err))

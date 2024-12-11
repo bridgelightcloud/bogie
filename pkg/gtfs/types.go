@@ -195,39 +195,99 @@ func ParseCurrencyCode(v string, c *string) error {
 	return nil
 }
 
-var validDate = regexp.MustCompile(`^\d{8}$`)
+type Date struct {
+	time.Time
+}
+
 var dateFormat = "20060102"
 
-func ParseDate(v string, t *time.Time) error {
-	f := strings.TrimSpace(v)
-	if !validDate.MatchString(f) {
-		return fmt.Errorf("invalid date format: %s", v)
-	}
+func (d Date) MarshalText() ([]byte, error) {
+	return []byte(d.Format(dateFormat)), nil
+}
 
-	p, err := time.Parse(dateFormat, f)
+func (d *Date) UnmarshalText(text []byte) error {
+	p, err := time.Parse(dateFormat, string(text))
 	if err != nil {
-		return fmt.Errorf("invalid date value: %s", v)
+		return fmt.Errorf("invalid date value: %s", text)
 	}
-
-	*t = p
+	d.Time = p
 	return nil
 }
 
-var validTime = regexp.MustCompile(`^\d{1,2}\:\d{2}\:\d{2}$`)
+func (d Date) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%d", d.Unix())), nil
+}
+
+func (d *Date) UnmarshalJSON(data []byte) error {
+	i, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid date value: %s", string(data))
+	}
+	*d = Date{time.Unix(i, 0)}
+	return nil
+}
+
+type Time struct {
+	time.Time
+}
+
 var timeFormat = "15:04:05"
 
-func ParseTime(v string, t *time.Time) error {
-	f := strings.TrimSpace(v)
-	if !validTime.MatchString(f) {
-		return fmt.Errorf("invalid time format: %s", v)
+func (t Time) MarshalText() ([]byte, error) {
+	timeStr := t.Format(timeFormat)
+
+	if d := t.Time.Day(); d > 1 {
+		hrs := strconv.Itoa(t.Hour() + 24)
+		return []byte(hrs + timeStr[2:]), nil
 	}
 
-	p, err := time.Parse(timeFormat, f)
+	return []byte(timeStr), nil
+}
+
+func (t *Time) UnmarshalText(text []byte) error {
+	timeStr := string(text)
+
+	p, err := time.Parse(timeFormat, timeStr)
+
 	if err != nil {
-		return fmt.Errorf("invalid time value: %s, %s", v, err)
+		hrs := timeStr[:2]
+		h, err := strconv.Atoi(hrs)
+		if err != nil || h < 24 {
+			return fmt.Errorf("invalid time value: %s", text)
+		}
+
+		timeStr = strconv.Itoa(h-24) + timeStr[2:]
+
+		p, err = time.Parse(timeFormat, timeStr)
+
+		if err != nil {
+			return fmt.Errorf("invalid time value: %s", text)
+		}
+
+		t.Time = p.AddDate(0, 0, 1)
+	} else {
+		t.Time = p
 	}
 
-	*t = p
+	return nil
+}
+
+func (t Time) MarshalJSON() ([]byte, error) {
+	if t.IsZero() {
+		return []byte("null"), nil
+	}
+	return []byte(fmt.Sprintf("%d", t.Unix())), nil
+}
+
+func (t *Time) UnmarshalJSON(data []byte) error {
+	if str := string(data); str == "null" {
+		t.Time = time.Time{}
+	} else if i, err := strconv.ParseInt(str, 10, 64); err == nil {
+		*t = Time{Time: time.Unix(i, 0)}
+	} else {
+		return fmt.Errorf("invalid time value: %s", str)
+	}
+
 	return nil
 }
 

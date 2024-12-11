@@ -74,13 +74,17 @@ func (s *GTFSSchedule) parseStopTimes(file *zip.File) error {
 			case "trip_id":
 				ParseString(v, &st.TripID)
 			case "arrival_time":
-				if err := ParseTime(v, &st.ArrivalTime); err != nil {
+				t, err := time.Parse(timeFormat, v)
+				if err != nil {
 					s.errors.add(fmt.Errorf("invalid arrival time at line %d: %w", i, err))
 				}
+				st.ArrivalTime = t
 			case "departure_time":
-				if err := ParseTime(v, &st.DepartureTime); err != nil {
+				t, err := time.Parse(timeFormat, v)
+				if err != nil {
 					s.errors.add(fmt.Errorf("invalid departure time at line %d: %w", i, err))
 				}
+				st.DepartureTime = t
 			case "stop_id":
 				ParseString(v, &st.StopID)
 			case "location_group_id":
@@ -94,13 +98,17 @@ func (s *GTFSSchedule) parseStopTimes(file *zip.File) error {
 			case "stop_headsign":
 				ParseString(v, &st.StopHeadsign)
 			case "start_pickup_drop_off_window":
-				if err := ParseTime(v, &st.StartPickupDropOffWindow); err != nil {
+				t, err := time.Parse(timeFormat, v)
+				if err != nil {
 					s.errors.add(fmt.Errorf("invalid start pickup drop off window at line %d: %w", i, err))
 				}
+				st.StartPickupDropOffWindow = t
 			case "end_pickup_drop_off_window":
-				if err := ParseTime(v, &st.EndPickupDropOffWindow); err != nil {
+				t, err := time.Parse(timeFormat, v)
+				if err != nil {
 					s.errors.add(fmt.Errorf("invalid end pickup drop off window at line %d: %w", i, err))
 				}
+				st.EndPickupDropOffWindow = t
 			case "pickup_type":
 				if err := ParseEnum(v, PickupType, &st.PickupType); err != nil {
 					s.errors.add(fmt.Errorf("invalid pickup type at line %d: %w", i, err))
