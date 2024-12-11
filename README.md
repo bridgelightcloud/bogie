@@ -30,7 +30,7 @@ Known simply as "Bogie", this project is a system for tracking and analyzing tra
 
 ## Sub Projects
 
-### CSV MUM
+### CSVMUM
 Marshal and unmarshal CSV files to and from Go structs, using reflection, tags, and custom parsers
 
 [README](./pkg/csvmum/README.md)
