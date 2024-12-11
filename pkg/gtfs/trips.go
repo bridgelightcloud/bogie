@@ -45,7 +45,7 @@ func (s *GTFSSchedule) parseTrips(file *zip.File) error {
 	}
 
 	if err != nil {
-		s.errors.add( err)
+		s.errors.add(err)
 		return err
 	}
 

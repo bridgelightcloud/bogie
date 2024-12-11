@@ -199,7 +199,6 @@ type Date struct {
 	time.Time
 }
 
-var validDate = regexp.MustCompile(`^\d{8}$`)
 var dateFormat = "20060102"
 
 func (d Date) MarshalText() ([]byte, error) {
@@ -228,26 +227,10 @@ func (d *Date) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func ParseDate(v string, t *time.Time) error {
-	f := strings.TrimSpace(v)
-	if !validDate.MatchString(f) {
-		return fmt.Errorf("invalid date format: %s", v)
-	}
-
-	p, err := time.Parse(dateFormat, f)
-	if err != nil {
-		return fmt.Errorf("invalid date value: %s", v)
-	}
-
-	*t = p
-	return nil
-}
-
 type Time struct {
 	time.Time
 }
 
-var validTime = regexp.MustCompile(`^(\d{1,2})\:\d{2}\:\d{2}$`)
 var timeFormat = "15:04:05"
 
 func (t Time) MarshalText() ([]byte, error) {
@@ -305,21 +288,6 @@ func (t *Time) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("invalid time value: %s", str)
 	}
 
-	return nil
-}
-
-func ParseTime(v string, t *time.Time) error {
-	f := strings.TrimSpace(v)
-	if !validTime.MatchString(f) {
-		return fmt.Errorf("invalid time format: %s", v)
-	}
-
-	p, err := time.Parse(timeFormat, f)
-	if err != nil {
-		return fmt.Errorf("invalid time value: %s, %s", v, err)
-	}
-
-	*t = p
 	return nil
 }
 

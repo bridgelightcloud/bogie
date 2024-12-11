@@ -148,66 +148,6 @@ func TestParseCurrencyCode(t *testing.T) {
 	}
 }
 
-func TestParseDate(t *testing.T) {
-	t.Parallel()
-
-	ct := time.Date(2006, 1, 2, 0, 0, 0, 0, time.UTC)
-	zt := time.Time{}
-	tt := []struct {
-		value   string
-		expErr  error
-		expTime time.Time
-	}{{
-		value:   "20060102",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   "2006-01-02",
-		expErr:  fmt.Errorf("invalid date format: %s", "2006-01-02"),
-		expTime: zt,
-	}, {
-		value:   "2006/01/02",
-		expErr:  fmt.Errorf("invalid date format: %s", "2006/01/02"),
-		expTime: zt,
-	}, {
-		value:   "20060102 ",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   " 20060102",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   "20060002",
-		expErr:  fmt.Errorf("invalid date value: %s", "20060002"),
-		expTime: zt,
-	}, {
-		value:   " ",
-		expErr:  fmt.Errorf("invalid date format: %s", " "),
-		expTime: zt,
-	}, {
-		value:   "",
-		expErr:  fmt.Errorf("invalid date format: %s", ""),
-		expTime: zt,
-	}}
-
-	for _, tc := range tt {
-		tc := tc
-
-		t.Run(t.Name(), func(t *testing.T) {
-			t.Parallel()
-
-			assert := assert.New(t)
-
-			var d time.Time
-			err := ParseDate(tc.value, &d)
-
-			assert.Equal(tc.expErr, err)
-			assert.Equal(tc.expTime, d)
-		})
-	}
-}
-
 func TestDateMarshalText(t *testing.T) {
 	t.Parallel()
 
@@ -361,70 +301,6 @@ func TestDateUnmarshalJSON(t *testing.T) {
 
 			assert.Equal(tc.date, d)
 			assert.Equal(tc.err, err)
-		})
-	}
-}
-
-func TestParseTime(t *testing.T) {
-	t.Parallel()
-
-	ct := time.Date(0, time.January, 1, 15, 4, 5, 0, time.UTC)
-	zt := time.Time{}
-	tt := []struct {
-		value   string
-		expErr  error
-		expTime time.Time
-	}{{
-		value:   "15:04:05",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   "15:04:05 ",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   " 15:04:05",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   "15:04:05 ",
-		expErr:  nil,
-		expTime: ct,
-	}, {
-		value:   "15:04:05.000",
-		expErr:  fmt.Errorf("invalid time format: %s", "15:04:05.000"),
-		expTime: zt,
-	}, {
-		value:   "3:04:05",
-		expErr:  nil,
-		expTime: time.Date(0, time.January, 1, 3, 4, 5, 0, time.UTC),
-	}, {
-		value:   "03:4:05",
-		expErr:  fmt.Errorf("invalid time format: %s", "03:4:05"),
-		expTime: zt,
-	}, {
-		value:   "30:04:05",
-		expErr:  fmt.Errorf("invalid time value: %s, parsing time \"%s\": hour out of range", "30:04:05", "30:04:05"),
-		expTime: zt,
-	}, {
-		value:   "15:60:05",
-		expErr:  fmt.Errorf("invalid time value: %s, parsing time \"%s\": minute out of range", "15:60:05", "15:60:05"),
-		expTime: zt,
-	}}
-
-	for _, tc := range tt {
-		tc := tc
-
-		t.Run(t.Name(), func(t *testing.T) {
-			t.Parallel()
-
-			assert := assert.New(t)
-
-			var d time.Time
-			err := ParseTime(tc.value, &d)
-
-			assert.Equal(tc.expErr, err)
-			assert.Equal(tc.expTime, d)
 		})
 	}
 }
