@@ -1,120 +1,268 @@
 package csvmum
 
 import (
-	"fmt"
+	"bytes"
+	"encoding/csv"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewCSVMarshaler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("simple", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			Second int
+		}
+
+		b := &bytes.Buffer{}
+		c := csv.NewWriter(b)
+		m, err := NewCSVMarshaler[testType](c)
+
+		assert.NotNil(m)
+		assert.Nil(err)
+
+		m.Flush()
+		assert.Equal([]byte("First,Second\n"), b.Bytes())
+	})
+
+	t.Run("T is not a struct", func(t *testing.T) {
+		t.Parallel()
+
+		type testType int
+
+		assert := assert.New(t)
+
+		b := &bytes.Buffer{}
+		c := csv.NewWriter(b)
+		m, err := NewCSVMarshaler[testType](c)
+
+		assert.NotNil(m)
+		assert.EqualError(err, "cannot marshal: cannot get headers: not a struct")
+
+		assert.Equal([]byte(nil), b.Bytes())
+	})
+
+	t.Run("invalid delimiter", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		b := &bytes.Buffer{}
+		c := csv.NewWriter(b)
+		c.Comma = utf8.RuneError
+
+		m, err := NewCSVMarshaler[struct{}](c)
+
+		assert.NotNil(m)
+		assert.EqualError(err, "cannot marshal: csv: invalid field or comment delimiter")
+
+	})
+
+	t.Run("short write", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		var bw shortWriter
+		c := csv.NewWriter(bw)
+		m, err := NewCSVMarshaler[struct{}](c)
+
+		assert.NotNil(m)
+
+		err = m.Flush()
+		assert.EqualError(err, "cannot marshal: short write")
+	})
+}
+
+func TestNewMarshaler(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+
+	type testType struct {
+		First  string
+		Second int
+	}
+
+	b := &bytes.Buffer{}
+	m, err := NewMarshaler[testType](b)
+
+	assert.NotNil(m)
+	assert.Nil(err)
+
+	m.Flush()
+	assert.Equal([]byte("First,Second\n"), b.Bytes())
+}
+
 func TestMarshal(t *testing.T) {
 	t.Parallel()
 
-	tt := []struct {
-		name     string
-		input    any
-		expected [][]string
-		err      error
-	}{{
-		name:     "empty",
-		input:    []struct{}{},
-		expected: [][]string{},
-		err:      nil,
-	}, {
-		name:     "not a struct",
-		input:    []int{1, 2, 3},
-		expected: [][]string{},
-		err:      fmt.Errorf("cannot marshal: cannot get headers: not a struct"),
-	}, {
-		name:     "not a slice",
-		input:    34,
-		expected: [][]string{},
-		err:      fmt.Errorf("cannot marshal: not a slice"),
-	}, {
-		name:     "simple",
-		input:    []struct{ One string }{{One: "one"}},
-		expected: [][]string{{"One"}, {"one"}},
-		err:      nil,
-	}, {
-		name: "complex",
-		input: []struct {
-			One   string
-			Two   int
-			Three bool
-		}{{One: "one", Two: 1, Three: true}},
-		expected: [][]string{{"One", "Two", "Three"}, {"one", "1", "true"}},
-		err:      nil,
-	}, {
-		name: "unexported",
-		input: []struct {
-			One   string
-			two   int
-			Three float64
-		}{{One: "one", two: 2, Three: 67.3}},
-		expected: [][]string{{"One", "Three"}, {"one", "67.3"}},
-		err:      nil,
-	}}
+	t.Run("empty", func(t *testing.T) {
+		t.Parallel()
 
-	for _, tc := range tt {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+		assert := assert.New(t)
 
-			assert := assert.New(t)
+		type testType struct{}
 
-			out, err := Marshal(tc.input)
-			assert.Equal(tc.expected, out)
-			assert.Equal(tc.err, err)
-		})
-	}
-}
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
 
-type customMarshal struct {
-	One string
-}
+		err := m.Marshal(testType{})
+		assert.Nil(err)
 
-func (c customMarshal) MarshalText() ([]byte, error) {
-	if len(c.One) == 0 {
-		return nil, fmt.Errorf("invalid text: %s", c.One)
-	}
+		m.Flush()
 
-	return []byte(fmt.Sprintf("~%s~", c.One)), nil
-}
+		assert.Equal([]byte("\n\n"), b.Bytes())
+	})
 
-func TestMarshalTextMarshaler(t *testing.T) {
-	t.Parallel()
+	t.Run("simple", func(t *testing.T) {
+		t.Parallel()
 
-	type cs struct {
-		Field customMarshal
-	}
+		assert := assert.New(t)
 
-	tt := []struct {
-		name     string
-		input    []cs
-		expected [][]string
-		err      error
-	}{{
-		name:     "simple",
-		input:    []cs{{Field: customMarshal{One: "one"}}},
-		expected: [][]string{{"Field"}, {"~one~"}},
-		err:      nil,
-	}, {
-		name:     "invalid",
-		input:    []cs{{Field: customMarshal{One: ""}}},
-		expected: [][]string{{"Field"}},
-		err:      fmt.Errorf("cannot marshal: invalid text: "),
-	}}
+		type testType struct {
+			First  string
+			Second int
+		}
 
-	for _, tc := range tt {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
 
-			assert := assert.New(t)
+		err := m.Marshal(testType{"one", 1})
+		assert.Nil(err)
 
-			out, err := Marshal(tc.input)
-			assert.Equal(tc.expected, out)
-			assert.Equal(tc.err, err)
-		})
-	}
+		m.Flush()
+		assert.Equal([]byte("First,Second\none,1\n"), b.Bytes())
+	})
+
+	t.Run("complex", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			Second int
+			Third  bool
+			Fourth float64
+		}
+
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
+
+		err := m.Marshal(testType{"one", 1, true, 3.14})
+		assert.Nil(err)
+
+		m.Flush()
+		assert.Equal([]byte("First,Second,Third,Fourth\none,1,true,3.14\n"), b.Bytes())
+	})
+
+	t.Run("unexported", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			second int
+			Third  float64
+		}
+
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
+
+		err := m.Marshal(testType{"one", 2, 67.3})
+		assert.Nil(err)
+
+		m.Flush()
+		assert.Equal([]byte("First,Third\none,67.3\n"), b.Bytes())
+	})
+
+	t.Run("text marshaler", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		type testType struct {
+			Field customMarshalAndUnmarshal
+		}
+
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
+
+		err := m.Marshal(testType{Field: customMarshalAndUnmarshal{One: "one"}})
+		assert.Nil(err)
+
+		m.Flush()
+		assert.Equal([]byte("Field\n~one~\n"), b.Bytes())
+	})
+
+	t.Run("invalid text marshaler", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		type testType struct {
+			Field customMarshalAndUnmarshal
+		}
+
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
+
+		err := m.Marshal(testType{Field: customMarshalAndUnmarshal{One: ""}})
+		assert.EqualError(err, "cannot marshal: invalid text: ")
+
+		m.Flush()
+		assert.Equal([]byte("Field\n"), b.Bytes())
+	})
+
+	t.Run("closed writer", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			Second int
+		}
+
+		b := &closeReaderWriter{}
+		m, _ := NewMarshaler[testType](b)
+
+		b.Close()
+
+		m.Marshal(testType{"one", 1})
+
+		err := m.Flush()
+		assert.EqualError(err, "cannot marshal: closed")
+	})
+
+	t.Run("invalid delimiter", func(t *testing.T) {
+		t.Parallel()
+
+		assert := assert.New(t)
+
+		type testType struct {
+			First  string
+			Second int
+		}
+
+		b := &bytes.Buffer{}
+		m, _ := NewMarshaler[testType](b)
+
+		m.writer.Comma = utf8.RuneError
+
+		err := m.Marshal(testType{"one", 1})
+		assert.EqualError(err, "cannot marshal: csv: invalid field or comment delimiter")
+
+		m.Flush()
+		assert.Equal([]byte("First,Second\n"), b.Bytes())
+	})
 }

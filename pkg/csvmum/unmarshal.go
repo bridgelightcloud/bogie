@@ -2,92 +2,104 @@ package csvmum
 
 import (
 	"encoding"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"reflect"
 	"strconv"
 )
 
-func Unmarshal(data [][]string, v any) error {
-	if len(data) == 0 {
-		return nil
-	}
+type CSVUnmarshaler[T any] struct {
+	reader    *csv.Reader
+	fieldList []int
+}
 
-	p := reflect.ValueOf(v)
-	if p.Kind() != reflect.Ptr {
-		return fmt.Errorf("cannot unmarshal: not a pointer")
-	}
+func NewUnmarshaler[T any](r io.Reader) (*CSVUnmarshaler[T], error) {
+	c := csv.NewReader(r)
+	return NewCSVUnmarshaler[T](c)
 
-	pe := p.Elem()
-	if pe.Kind() != reflect.Slice {
-		return fmt.Errorf("cannot unmarshal: not a pointer to a slice")
-	}
+}
 
-	typ := pe.Type().Elem()
-	ftoi, err := getHeaderNamesToIndices(typ)
+func NewCSVUnmarshaler[T any](r *csv.Reader) (*CSVUnmarshaler[T], error) {
+	um := &CSVUnmarshaler[T]{reader: r}
+
+	var t T
+	fm, err := buildFieldMap(reflect.TypeOf(t))
 	if err != nil {
-		return fmt.Errorf("cannot unmarshal: %v", err)
+		return um, fmt.Errorf("cannot unmarshal: %w", err)
 	}
 
-	headers := data[0]
-	if len(headers) == 0 {
-		return fmt.Errorf("cannot unmarshal: no headers")
+	hh, err := um.reader.Read()
+	if err == io.EOF {
+		return um, err
+	}
+	if err != nil {
+		return um, fmt.Errorf("cannot unmarshal: %w", err)
 	}
 
-	hm := map[int]int{}
-	for i, h := range headers {
-		if j, ok := ftoi[h]; ok {
-			hm[i] = j
+	um.fieldList = make([]int, len(hh))
+	for i, h := range hh {
+		if j, ok := fm[h]; ok {
+			um.fieldList[i] = j
+		} else {
+			um.fieldList[i] = -1
 		}
 	}
-	if len(hm) == 0 {
-		return fmt.Errorf("cannot unmarshal: no headers matched")
+
+	return um, nil
+}
+
+func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
+	r, err := um.reader.Read()
+	if err == io.EOF {
+		return err
+	}
+	if err != nil {
+		return fmt.Errorf("cannot unmarshal: %w", err)
 	}
 
-	for _, record := range data[1:] {
-		if len(record) == 0 {
+	typ := reflect.TypeOf(*record)
+	n := reflect.New(typ).Elem()
+
+	for i, j := range um.fieldList {
+		if j == -1 {
 			continue
 		}
-		if len(record) != len(headers) {
+
+		f := n.Field(j)
+
+		if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			if err := m.UnmarshalText([]byte(r[i])); err != nil {
+				return fmt.Errorf("cannot unmarshal: %w", err)
+			}
 			continue
 		}
 
-		n := reflect.New(typ).Elem()
-		for i, j := range hm {
-			f := n.Field(j)
-
-			if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
-				err := m.UnmarshalText([]byte(record[i]))
-				if err != nil {
-					return fmt.Errorf("cannot unmarshal: %w", err)
-				}
-				continue
+		switch f.Kind() {
+		case reflect.String:
+			f.SetString(r[i])
+		case reflect.Int:
+			i, err := strconv.ParseInt(r[i], 10, 64)
+			if err != nil {
+				return fmt.Errorf("cannot unmarshal: error parsing int: %w", err)
 			}
-
-			switch f.Kind() {
-			case reflect.String:
-				f.SetString(record[i])
-			case reflect.Int:
-				i, err := strconv.ParseInt(record[i], 10, 64)
-				if err != nil {
-					fmt.Printf("error parsing int: %v\n", err)
-				}
-				f.SetInt(i)
-			case reflect.Bool:
-				b, err := strconv.ParseBool(record[i])
-				if err != nil {
-					fmt.Printf("error parsing bool: %v\n", err)
-				}
-				f.SetBool(b)
-			case reflect.Float64:
-				f64, err := strconv.ParseFloat(record[i], 64)
-				if err != nil {
-					fmt.Printf("error parsing float64: %v\n", err)
-				}
-				f.SetFloat(f64)
+			f.SetInt(i)
+		case reflect.Bool:
+			b, err := strconv.ParseBool(r[i])
+			if err != nil {
+				return fmt.Errorf("cannot unmarshal: error parsing bool: %w", err)
 			}
+			f.SetBool(b)
+		case reflect.Float64:
+			f64, err := strconv.ParseFloat(r[i], 64)
+			if err != nil {
+				return fmt.Errorf("cannot unmarshal: error parsing float64: %w", err)
+			}
+			f.SetFloat(f64)
 		}
-		pe.Set(reflect.Append(pe, n))
 	}
+
+	reflect.ValueOf(record).Elem().Set(n)
 
 	return nil
 }
