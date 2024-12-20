@@ -30,7 +30,7 @@ func CreateGTFSCollection(zipFiles []string) (map[string]GTFSSchedule, error) {
 	sc := make(map[string]GTFSSchedule)
 
 	for _, path := range zipFiles {
-		s, err := OpenScheduleFromFile(path)
+		s, err := OpenScheduleFromZipFile(path)
 		if err != nil {
 			return sc, err
 		}

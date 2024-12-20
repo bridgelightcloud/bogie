@@ -21,7 +21,41 @@ type GTFSSchedule struct {
 	warning     errorList
 }
 
-func OpenScheduleFromFile(fn string) (GTFSSchedule, error) {
+type gtfsSpec[R record] struct {
+	setter func(*GTFSSchedule, map[string]R)
+}
+
+func (s gtfsSpec[R]) Parse(f *zip.File, schedule *GTFSSchedule, errors errorList) {
+	r, err := f.Open()
+	if err != nil {
+		errors.add(fmt.Errorf("error opening file: %w", err))
+		return
+	}
+	defer r.Close()
+
+	records := make(map[string]R)
+
+	parse(r, records, &errors)
+
+	s.setter(schedule, records)
+}
+
+type parseableGtfs interface {
+	Parse(*zip.File, *GTFSSchedule, errorList)
+}
+
+var gtfsSpecs = map[string]parseableGtfs{
+	"agency.txt":         gtfsSpec[Agency]{setter: func(s *GTFSSchedule, r map[string]Agency) { s.Agencies = r }},
+	"stops.txt":          gtfsSpec[Stop]{setter: func(s *GTFSSchedule, r map[string]Stop) { s.Stops = r }},
+	"routes.txt":         gtfsSpec[Route]{setter: func(s *GTFSSchedule, r map[string]Route) { s.Routes = r }},
+	"calendar.txt":       gtfsSpec[Calendar]{setter: func(s *GTFSSchedule, r map[string]Calendar) { s.Calendar = r }},
+	"calendar_dates.txt": gtfsSpec[CalendarDate]{setter: func(s *GTFSSchedule, r map[string]CalendarDate) { s.CalendarDates = r }},
+	"trips.txt":          gtfsSpec[Trip]{setter: func(s *GTFSSchedule, r map[string]Trip) { s.Trips = r }},
+	"stop_times.txt":     gtfsSpec[StopTime]{setter: func(s *GTFSSchedule, r map[string]StopTime) { s.StopTimes = r }},
+	"levels.txt":         gtfsSpec[Level]{setter: func(s *GTFSSchedule, r map[string]Level) { s.Levels = r }},
+}
+
+func OpenScheduleFromZipFile(fn string) (GTFSSchedule, error) {
 	r, err := zip.OpenReader(fn)
 	if err != nil {
 		return GTFSSchedule{}, err
@@ -34,63 +68,15 @@ func OpenScheduleFromFile(fn string) (GTFSSchedule, error) {
 }
 
 func parseSchedule(r *zip.ReadCloser) GTFSSchedule {
-	s := GTFSSchedule{}
+	var s GTFSSchedule
 
-	files := make(map[string]*zip.File)
 	for _, f := range r.File {
-		files[f.Name] = f
+		if spec, ok := gtfsSpecs[f.Name]; ok {
+			fmt.Printf("Parsing %s\n", f.Name)
+			spec.Parse(f, &s, s.errors)
+		}
 	}
 
-	if f, ok := files["agency.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing agency.txt"))
-	} else {
-		s.parseAgencies(f)
-	}
-
-	if f, ok := files["levels.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing levels.txt"))
-	} else {
-		s.parseLevels(f)
-	}
-
-	if f, ok := files["stops.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing stops.txt"))
-	} else {
-		s.parseStopsData(f)
-	}
-
-	if f, ok := files["routes.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing routes.txt"))
-	} else {
-		s.parseRoutes(f)
-	}
-
-	if f, ok := files["calendar.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing calendar.txt"))
-	} else {
-		s.parseCalendar(f)
-	}
-
-	if f, ok := files["calendar_dates.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing calendar_dates.txt"))
-	} else if err := s.parseCalendarDates(f); err != nil {
-		s.errors.add(err)
-	}
-
-	if f, ok := files["trips.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing trips.txt"))
-	} else if err := s.parseTrips(f); err != nil {
-		s.errors.add(err)
-	}
-
-	if f, ok := files["stop_times.txt"]; !ok {
-		s.errors.add(fmt.Errorf("missing stop_times.txt"))
-	} else if err := s.parseStopTimes(f); err != nil {
-		s.errors.add(err)
-	}
-
-	// f, ok = files["trips.txt"]
-	// f, ok = files["stop_times.txt"]
 	// f, ok = files["fare_attributes.txt"]
 	// f, ok = files["fare_rules.txt"]
 	// f, ok = files["timeframes.txt"]

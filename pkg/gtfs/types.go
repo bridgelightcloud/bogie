@@ -340,47 +340,6 @@ var (
 	NoWheelchairsAccomodated        int        = 2
 )
 
-func ParseEnum(v string, b enumBounds, e *int) error {
-	f := strings.TrimSpace(v)
-	i, err := strconv.Atoi(f)
-	if err != nil {
-		return fmt.Errorf("invalid enum value: %s", v)
-	}
-
-	if i < b.L || i > b.U {
-		return fmt.Errorf("enum out of bounds: %d", i)
-	}
-
-	*e = i
-	return nil
-}
-
-func ParseInt(v string, i *int) error {
-	f := strings.TrimSpace(v)
-	p, err := strconv.Atoi(f)
-	if err != nil {
-		return fmt.Errorf("invalid integer value: %s", v)
-	}
-	*i = p
-	return nil
-}
-
-func ParseFloat(v string, fl *float64) error {
-	f := strings.TrimSpace(v)
-	p, err := strconv.ParseFloat(f, 64)
-	if err != nil {
-		return fmt.Errorf("invalid float value: %s", v)
-	}
-
-	*fl = p
-	return nil
-}
-
-func ParseString(v string, s *string) {
-	f := strings.TrimSpace(v)
-	*s = f
-}
-
 type errorList []error
 
 func (e *errorList) add(err error) error {
@@ -389,52 +348,4 @@ func (e *errorList) add(err error) error {
 	}
 	*e = append(*e, err)
 	return err
-}
-
-type Coords struct {
-	Lat float64 `json:"lat"`
-	Lon float64 `json:"lon"`
-}
-
-func (c Coords) IsValid() bool {
-	return c.Lat >= -90 && c.Lat <= 90 && c.Lon >= -180 && c.Lon <= 180
-}
-
-func (c Coords) IsSet() bool {
-	return c.Lat != 0 && c.Lon != 0
-}
-
-func ParseLat(v string, c *Coords) error {
-	f := strings.TrimSpace(v)
-	p, err := strconv.ParseFloat(f, 64)
-	if err != nil {
-		return fmt.Errorf("invalid latitude value: %s", v)
-	}
-
-	if p < -90 || p > 90 {
-		return fmt.Errorf("latitude out of bounds: %f", p)
-	}
-
-	c.Lat = p
-	return nil
-}
-
-func ParseLon(v string, c *Coords) error {
-	f := strings.TrimSpace(v)
-	p, err := strconv.ParseFloat(f, 64)
-	if err != nil {
-		return fmt.Errorf("invalid longitude value: %s", v)
-	}
-
-	if p < -180 || p > 180 {
-		return fmt.Errorf("longitude out of bounds: %f", p)
-	}
-
-	c.Lon = p
-	return nil
-}
-
-func appendParsedString(v string, s *[]string) {
-	f := strings.TrimSpace(v)
-	*s = append(*s, f)
 }
