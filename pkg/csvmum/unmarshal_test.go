@@ -260,10 +260,12 @@ func TestUnmarshal(t *testing.T) {
 			Second int
 			Third  bool
 			Fourth float64
+			Fifth  *int
+			Sixth  *int
 		}
 
 		b := &bytes.Buffer{}
-		b.WriteString("First,Second,Third,Fourth\none,2,true,3.14\n")
+		b.WriteString("First,Second,Third,Fourth,Fifth,Sixth\none,2,true,3.14, ,7\n")
 
 		m, _ := NewUnmarshaler[testType](b)
 
@@ -271,7 +273,61 @@ func TestUnmarshal(t *testing.T) {
 		err := m.Unmarshal(&record)
 
 		assert.Nil(err)
-		assert.Equal(testType{First: "one", Second: 2, Third: true, Fourth: 3.14}, record)
+		assert.Equal(testType{
+			First:  "one",
+			Second: 2,
+			Third:  true,
+			Fourth: 3.14,
+			Fifth:  nil,
+			Sixth:  ptr(7),
+		}, record)
+	})
+
+	t.Run("pointers", func(t *testing.T) {
+		t.Parallel()
+
+		type testType struct {
+			First  *int
+			Second *float64
+		}
+
+		t.Run("values", func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+
+			b := &bytes.Buffer{}
+			b.WriteString("First,Second\n2,3.14\n")
+
+			m, _ := NewUnmarshaler[testType](b)
+
+			var record testType
+			err := m.Unmarshal(&record)
+
+			assert.Nil(err)
+			assert.Equal(testType{
+				First:  ptr(2),
+				Second: ptr(3.14),
+			}, record)
+		})
+
+		t.Run("nil", func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+
+			b := &bytes.Buffer{}
+			b.WriteString("First,Second\n,\n")
+
+			m, _ := NewUnmarshaler[testType](b)
+
+			var record testType
+			err := m.Unmarshal(&record)
+
+			assert.Nil(err)
+			assert.Equal(testType{
+				First:  nil,
+				Second: nil,
+			}, record)
+		})
 	})
 
 	t.Run("custom unmarshaler", func(t *testing.T) {

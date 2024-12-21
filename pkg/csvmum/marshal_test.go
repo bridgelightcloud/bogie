@@ -72,11 +72,11 @@ func TestNewCSVMarshaler(t *testing.T) {
 
 		var bw shortWriter
 		c := csv.NewWriter(bw)
-		m, err := NewCSVMarshaler[struct{}](c)
+		m, _ := NewCSVMarshaler[struct{}](c)
 
 		assert.NotNil(m)
 
-		err = m.Flush()
+		err := m.Flush()
 		assert.EqualError(err, "cannot marshal: short write")
 	})
 }
@@ -162,6 +162,43 @@ func TestMarshal(t *testing.T) {
 
 		m.Flush()
 		assert.Equal([]byte("First,Second,Third,Fourth\none,1,true,3.14\n"), b.Bytes())
+	})
+
+	t.Run("pointers", func(t *testing.T) {
+		t.Parallel()
+
+		type testType struct {
+			First  *int
+			Second *float64
+		}
+
+		t.Run("values", func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+
+			b := &bytes.Buffer{}
+			m, _ := NewMarshaler[testType](b)
+
+			err := m.Marshal(testType{First: ptr(2), Second: ptr(3.14)})
+			assert.Nil(err)
+
+			m.Flush()
+			assert.Equal([]byte("First,Second\n2,3.14\n"), b.Bytes())
+		})
+
+		t.Run("nil", func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
+
+			b := &bytes.Buffer{}
+			m, _ := NewMarshaler[testType](b)
+
+			err := m.Marshal(testType{First: nil, Second: nil})
+			assert.Nil(err)
+
+			m.Flush()
+			assert.Equal([]byte("First,Second\n,\n"), b.Bytes())
+		})
 	})
 
 	t.Run("unexported", func(t *testing.T) {
