@@ -28,12 +28,11 @@ func parse[T record](f io.Reader, records map[string]T, errors *errorList) {
 		}
 		if err != nil {
 			errors.add(fmt.Errorf("error unmarshalling file: %w", err))
-			break
+			continue
 		}
 
 		errs := r.validate()
 		if errs != nil {
-			fmt.Println("errors", errs)
 			for _, e := range errs {
 				errors.add(fmt.Errorf("invalid record: %w", e))
 			}

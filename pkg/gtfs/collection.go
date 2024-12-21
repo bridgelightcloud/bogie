@@ -7,7 +7,7 @@ import (
 )
 
 func Overview(c map[string]GTFSSchedule) string {
-	o := ""
+	var o string
 
 	for sid, s := range c {
 		o += fmt.Sprintf("Schedule %s\n", sid[0:4])
@@ -39,8 +39,4 @@ func CreateGTFSCollection(zipFiles []string) (map[string]GTFSSchedule, error) {
 	}
 
 	return sc, nil
-}
-
-func (s *GTFSSchedule) Errors() errorList {
-	return s.errors
 }

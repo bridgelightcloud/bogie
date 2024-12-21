@@ -21,6 +21,10 @@ type GTFSSchedule struct {
 	warning     errorList
 }
 
+func (s GTFSSchedule) Errors() errorList {
+	return s.errors
+}
+
 type gtfsSpec[R record] struct {
 	setter func(*GTFSSchedule, map[string]R)
 }
