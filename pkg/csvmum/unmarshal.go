@@ -99,17 +99,21 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 		case reflect.Pointer:
 			switch f.Type().Elem().Kind() {
 			case reflect.Int:
-				i, err := strconv.Atoi(r[i])
-				if err != nil && r[i] != "" {
-					return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing int pointer: %w", i, j, err)
+				if r[i] != "" {
+					i, err := strconv.Atoi(r[i])
+					if err != nil {
+						return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing int pointer: %w", i, j, err)
+					}
+					f.Set(reflect.ValueOf(&i))
 				}
-				f.Set(reflect.ValueOf(&i))
 			case reflect.Float64:
-				f64, err := strconv.ParseFloat(r[i], 64)
-				if err != nil && r[i] != "" {
-					return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing float64 pointer: %w", i, j, err)
+				if r[i] != "" {
+					f64, err := strconv.ParseFloat(r[i], 64)
+					if err != nil {
+						return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing float64 pointer: %w", i, j, err)
+					}
+					f.Set(reflect.ValueOf(&f64))
 				}
-				f.Set(reflect.ValueOf(&f64))
 			}
 		}
 	}
