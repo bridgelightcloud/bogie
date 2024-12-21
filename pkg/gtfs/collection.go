@@ -40,3 +40,7 @@ func CreateGTFSCollection(zipFiles []string) (map[string]GTFSSchedule, error) {
 
 	return sc, nil
 }
+
+func (s *GTFSSchedule) Errors() errorList {
+	return s.errors
+}

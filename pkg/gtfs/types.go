@@ -250,6 +250,9 @@ func (t *Time) UnmarshalText(text []byte) error {
 	p, err := time.Parse(timeFormat, timeStr)
 
 	if err != nil {
+		if len(timeStr) < 8 {
+			return fmt.Errorf("invalid time value: %s", text)
+		}
 		hrs := timeStr[:2]
 		h, err := strconv.Atoi(hrs)
 		if err != nil || h < 24 {

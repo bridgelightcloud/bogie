@@ -32,4 +32,16 @@ func main() {
 	}
 
 	fmt.Println(gtfs.Overview(col))
+
+	errFile, err := os.Create("gtfs_files/gtfs_errors.txt")
+	if err != nil {
+		log.Fatalf("Error creating error file: %s\n", err.Error())
+	}
+	defer errFile.Close()
+
+	for _, e := range col {
+		for _, err := range e.Errors() {
+			errFile.WriteString(fmt.Sprintf("%s\n", err))
+		}
+	}
 }

@@ -25,7 +25,7 @@ type gtfsSpec[R record] struct {
 	setter func(*GTFSSchedule, map[string]R)
 }
 
-func (s gtfsSpec[R]) Parse(f *zip.File, schedule *GTFSSchedule, errors errorList) {
+func (s gtfsSpec[R]) Parse(f *zip.File, schedule *GTFSSchedule, errors *errorList) {
 	r, err := f.Open()
 	if err != nil {
 		errors.add(fmt.Errorf("error opening file: %w", err))
@@ -35,13 +35,13 @@ func (s gtfsSpec[R]) Parse(f *zip.File, schedule *GTFSSchedule, errors errorList
 
 	records := make(map[string]R)
 
-	parse(r, records, &errors)
+	parse(r, records, errors)
 
 	s.setter(schedule, records)
 }
 
 type parseableGtfs interface {
-	Parse(*zip.File, *GTFSSchedule, errorList)
+	Parse(*zip.File, *GTFSSchedule, *errorList)
 }
 
 var gtfsSpecs = map[string]parseableGtfs{
@@ -72,8 +72,7 @@ func parseSchedule(r *zip.ReadCloser) GTFSSchedule {
 
 	for _, f := range r.File {
 		if spec, ok := gtfsSpecs[f.Name]; ok {
-			fmt.Printf("Parsing %s\n", f.Name)
-			spec.Parse(f, &s, s.errors)
+			spec.Parse(f, &s, &s.errors)
 		}
 	}
 
