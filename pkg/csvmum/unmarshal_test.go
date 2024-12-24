@@ -209,7 +209,7 @@ func TestUnmarshal(t *testing.T) {
 		var record testType
 		err := m.Unmarshal(&record)
 
-		assert.EqualError(err, "cannot unmarshal column 0, field 0: error parsing int: strconv.ParseInt: parsing \"one\": invalid syntax")
+		assert.EqualError(err, "cannot unmarshal column 0, field 0: strconv.ParseInt: parsing \"one\": invalid syntax")
 	})
 
 	t.Run("invalid record: bool", func(t *testing.T) {
@@ -228,7 +228,7 @@ func TestUnmarshal(t *testing.T) {
 		var record testType
 		err := m.Unmarshal(&record)
 
-		assert.EqualError(err, "cannot unmarshal column 1, field 0: error parsing bool: strconv.ParseBool: parsing \"blah\": invalid syntax")
+		assert.EqualError(err, "cannot unmarshal column 1, field 0: strconv.ParseBool: parsing \"blah\": invalid syntax")
 	})
 
 	t.Run("invalid record: float64", func(t *testing.T) {
@@ -248,7 +248,7 @@ func TestUnmarshal(t *testing.T) {
 		var record testType
 		err := m.Unmarshal(&record)
 
-		assert.EqualError(err, "cannot unmarshal column 0, field 1: error parsing float64: strconv.ParseFloat: parsing \"blah\": invalid syntax")
+		assert.EqualError(err, "cannot unmarshal column 0, field 1: strconv.ParseFloat: parsing \"blah\": invalid syntax")
 	})
 
 	t.Run("complex", func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestUnmarshal(t *testing.T) {
 		}
 
 		b := &bytes.Buffer{}
-		b.WriteString("First,Second,Third,Fourth,Fifth,Sixth\none,2,true,3.14, ,7\n")
+		b.WriteString("First,Second,Third,Fourth,Fifth,Sixth\none,2,true,3.14,,7\n")
 
 		m, _ := NewUnmarshaler[testType](b)
 
