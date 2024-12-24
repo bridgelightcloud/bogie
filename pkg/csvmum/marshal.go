@@ -56,13 +56,25 @@ func (m *CSVMarshaler[T]) Marshal(record T) error {
 
 		switch f.Kind() {
 		case reflect.String:
-			row[ci] = fmt.Sprintf("%s", f.String())
+			row[ci] = f.String()
 		case reflect.Int:
-			row[ci] = fmt.Sprintf("%d", f.Int())
+			row[ci] = strconv.FormatInt(f.Int(), 10)
 		case reflect.Bool:
-			row[ci] = fmt.Sprintf("%t", f.Bool())
+			row[ci] = strconv.FormatBool(f.Bool())
 		case reflect.Float64:
-			row[ci] = fmt.Sprintf("%s", strconv.FormatFloat(f.Float(), 'f', -1, 64))
+			row[ci] = strconv.FormatFloat(f.Float(), 'f', -1, 64)
+		case reflect.Pointer:
+			if f.IsNil() {
+				row[ci] = ""
+				continue
+			}
+
+			switch f.Elem().Kind() {
+			case reflect.Int:
+				row[ci] = strconv.FormatInt(f.Elem().Int(), 10)
+			case reflect.Float64:
+				row[ci] = strconv.FormatFloat(f.Elem().Float(), 'f', -1, 64)
+			}
 		}
 	}
 
