@@ -18,7 +18,7 @@ type GTFSSchedule struct {
 
 	unusedFiles []string
 	errors      errorList
-	warning     errorList
+	warnings    errorList
 }
 
 func (s GTFSSchedule) Errors() errorList {
@@ -26,10 +26,14 @@ func (s GTFSSchedule) Errors() errorList {
 }
 
 type gtfsSpec[R record] struct {
-	setter func(*GTFSSchedule, map[string]R)
+	set func(*GTFSSchedule, map[string]R)
 }
 
-func (s gtfsSpec[R]) Parse(f *zip.File, schedule *GTFSSchedule, errors *errorList) {
+type fileParser interface {
+	parseFile(*zip.File, *GTFSSchedule, *errorList)
+}
+
+func (spec gtfsSpec[R]) parseFile(f *zip.File, schedule *GTFSSchedule, errors *errorList) {
 	r, err := f.Open()
 	if err != nil {
 		errors.add(fmt.Errorf("error opening file: %w", err))
@@ -41,22 +45,18 @@ func (s gtfsSpec[R]) Parse(f *zip.File, schedule *GTFSSchedule, errors *errorLis
 
 	parse(r, records, errors)
 
-	s.setter(schedule, records)
+	spec.set(schedule, records)
 }
 
-type parseableGtfs interface {
-	Parse(*zip.File, *GTFSSchedule, *errorList)
-}
-
-var gtfsSpecs = map[string]parseableGtfs{
-	"agency.txt":         gtfsSpec[Agency]{setter: func(s *GTFSSchedule, r map[string]Agency) { s.Agencies = r }},
-	"stops.txt":          gtfsSpec[Stop]{setter: func(s *GTFSSchedule, r map[string]Stop) { s.Stops = r }},
-	"routes.txt":         gtfsSpec[Route]{setter: func(s *GTFSSchedule, r map[string]Route) { s.Routes = r }},
-	"calendar.txt":       gtfsSpec[Calendar]{setter: func(s *GTFSSchedule, r map[string]Calendar) { s.Calendar = r }},
-	"calendar_dates.txt": gtfsSpec[CalendarDate]{setter: func(s *GTFSSchedule, r map[string]CalendarDate) { s.CalendarDates = r }},
-	"trips.txt":          gtfsSpec[Trip]{setter: func(s *GTFSSchedule, r map[string]Trip) { s.Trips = r }},
-	"stop_times.txt":     gtfsSpec[StopTime]{setter: func(s *GTFSSchedule, r map[string]StopTime) { s.StopTimes = r }},
-	"levels.txt":         gtfsSpec[Level]{setter: func(s *GTFSSchedule, r map[string]Level) { s.Levels = r }},
+var gtfsSpecs = map[string]fileParser{
+	"agency.txt":         gtfsSpec[Agency]{set: func(s *GTFSSchedule, r map[string]Agency) { s.Agencies = r }},
+	"stops.txt":          gtfsSpec[Stop]{set: func(s *GTFSSchedule, r map[string]Stop) { s.Stops = r }},
+	"routes.txt":         gtfsSpec[Route]{set: func(s *GTFSSchedule, r map[string]Route) { s.Routes = r }},
+	"calendar.txt":       gtfsSpec[Calendar]{set: func(s *GTFSSchedule, r map[string]Calendar) { s.Calendar = r }},
+	"calendar_dates.txt": gtfsSpec[CalendarDate]{set: func(s *GTFSSchedule, r map[string]CalendarDate) { s.CalendarDates = r }},
+	"trips.txt":          gtfsSpec[Trip]{set: func(s *GTFSSchedule, r map[string]Trip) { s.Trips = r }},
+	"stop_times.txt":     gtfsSpec[StopTime]{set: func(s *GTFSSchedule, r map[string]StopTime) { s.StopTimes = r }},
+	"levels.txt":         gtfsSpec[Level]{set: func(s *GTFSSchedule, r map[string]Level) { s.Levels = r }},
 }
 
 func OpenScheduleFromZipFile(fn string) (GTFSSchedule, error) {
@@ -66,43 +66,23 @@ func OpenScheduleFromZipFile(fn string) (GTFSSchedule, error) {
 	}
 	defer r.Close()
 
-	sd := parseSchedule(r)
+	s := parseSchedule(r)
 
-	return sd, nil
+	return s, nil
 }
 
 func parseSchedule(r *zip.ReadCloser) GTFSSchedule {
 	var s GTFSSchedule
 
 	for _, f := range r.File {
-		if spec, ok := gtfsSpecs[f.Name]; ok {
-			spec.Parse(f, &s, &s.errors)
+		spec := gtfsSpecs[f.Name]
+		if spec == nil {
+			s.unusedFiles = append(s.unusedFiles, f.Name)
+			s.warnings.add(fmt.Errorf("unused file: %s", f.Name))
+			continue
 		}
+		spec.parseFile(f, &s, &s.errors)
 	}
-
-	// f, ok = files["fare_attributes.txt"]
-	// f, ok = files["fare_rules.txt"]
-	// f, ok = files["timeframes.txt"]
-	// f, ok = files["fare_media.txt"]
-	// f, ok = files["fare_products.txt"]
-	// f, ok = files["fare_leg_rules.txt"]
-	// f, ok = files["fare_transfer_rules.txt"]
-	// f, ok = files["areas.txt"]
-	// f, ok = files["stop_areas.txt"]
-	// f, ok = files["networks.txt"]
-	// f, ok = files["route_networks.txt"]
-	// f, ok = files["shapes.txt"]
-	// f, ok = files["frequencies.txt"]
-	// f, ok = files["transfers.txt"]
-	// f, ok = files["pathways.txt"]
-	// f, ok = files["levels.txt"]
-	// f, ok = files["location_groups.txt"]
-	// f, ok = files["location_group_stops.txt"]
-	// f, ok = files["locations.geojson"]
-	// f, ok = files["booking_rules.txt"]
-	// f, ok = files["translations.txt"]
-	// f, ok = files["feed_info.txt"]
-	// f, ok = files["attributions.txt"]
 
 	return s
 }
