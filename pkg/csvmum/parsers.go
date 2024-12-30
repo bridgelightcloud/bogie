@@ -94,9 +94,6 @@ func parsePointer(field reflect.Value, value string) (reflect.Value, error) {
 		return reflect.Value{}, err
 	}
 
-	if v.CanAddr() {
-		return v.Addr(), nil
-	}
 	newValue := reflect.New(v.Type()).Elem()
 	newValue.Set(v)
 	return newValue.Addr(), nil

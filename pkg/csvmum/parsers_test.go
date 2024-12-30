@@ -203,4 +203,40 @@ func TestParsers(t *testing.T) {
 		assert.Nil(err)
 		assert.Equal(tc, v.Elem().Interface())
 	})
+
+	t.Run("parseInvalidPointer", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		tc := 1
+		field := reflect.ValueOf(ptr(tc))
+		value := "seven"
+		_, err := parsePointer(field, value)
+
+		assert.Equal(err.Error(), "strconv.ParseInt: parsing \"seven\": invalid syntax")
+	})
+
+	t.Run("invalidType", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		field := reflect.Value{}
+		value := "1"
+		_, err := parseValue(field, value)
+
+		assert.Equal(err.Error(), "unsupported type invalid")
+	})
+
+	t.Run("parsePointerToPointer", func(t *testing.T) {
+		t.Parallel()
+		assert := assert.New(t)
+
+		tc := 1
+		field := reflect.ValueOf(ptr(ptr(tc)))
+		value := "1"
+		v, err := parsePointer(field, value)
+
+		assert.Nil(err)
+		assert.Equal(tc, v.Elem().Elem().Interface())
+	})
 }
