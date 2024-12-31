@@ -70,7 +70,7 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 
 		if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
 			if err := m.UnmarshalText([]byte(r[i])); err != nil {
-				return fmt.Errorf("cannot unmarshal: %w", err)
+				return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)
 			}
 			continue
 		}
@@ -81,19 +81,19 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 		case reflect.Int:
 			i, err := strconv.ParseInt(r[i], 10, 64)
 			if err != nil {
-				return fmt.Errorf("cannot unmarshal: error parsing int: %w", err)
+				return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing int: %w", i, j, err)
 			}
 			f.SetInt(i)
 		case reflect.Bool:
 			b, err := strconv.ParseBool(r[i])
 			if err != nil {
-				return fmt.Errorf("cannot unmarshal: error parsing bool: %w", err)
+				return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing bool: %w", i, j, err)
 			}
 			f.SetBool(b)
 		case reflect.Float64:
 			f64, err := strconv.ParseFloat(r[i], 64)
 			if err != nil {
-				return fmt.Errorf("cannot unmarshal: error parsing float64: %w", err)
+				return fmt.Errorf("cannot unmarshal column %d, field %d: error parsing float64: %w", i, j, err)
 			}
 			f.SetFloat(f64)
 		}
