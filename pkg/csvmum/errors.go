@@ -13,14 +13,14 @@ func (e *UnsupportedTypeError) Error() string {
 	return fmt.Sprintf("unsupported type: %s", e.Kind)
 }
 
-type ParseError struct {
+type UnmarshalValueError struct {
 	Err error
 }
 
-func (e *ParseError) Error() string {
+func (e *UnmarshalValueError) Error() string {
 	return e.Err.Error()
 }
 
-func (e *ParseError) Unwrap() error {
+func (e *UnmarshalValueError) Unwrap() error {
 	return e.Err
 }

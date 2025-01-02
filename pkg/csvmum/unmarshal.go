@@ -1,7 +1,6 @@
 package csvmum
 
 import (
-	"encoding"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -64,13 +63,6 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 		}
 
 		field := nsv.Field(j)
-
-		if m, ok := field.Addr().Interface().(encoding.TextUnmarshaler); ok {
-			if err := m.UnmarshalText([]byte(line[i])); err != nil {
-				return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)
-			}
-			continue
-		}
 
 		if err := unmarshalValue(line[i], field); err != nil {
 			return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)

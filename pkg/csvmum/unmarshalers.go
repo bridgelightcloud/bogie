@@ -1,6 +1,7 @@
 package csvmum
 
 import (
+	"encoding"
 	"math/bits"
 	"reflect"
 	"strconv"
@@ -79,11 +80,18 @@ func unmarshalPointer(value string, field reflect.Value) error {
 }
 
 func unmarshalValue(value string, field reflect.Value) error {
+	if m, ok := field.Addr().Interface().(encoding.TextUnmarshaler); ok {
+		if err := m.UnmarshalText([]byte(value)); err != nil {
+			return &UnmarshalValueError{err}
+		}
+		return nil
+	}
+
 	kind := field.Kind()
 	if p, ok := defaultUnmarshalers[kind]; ok {
 		err := p(value, field)
 		if err != nil {
-			return &ParseError{err}
+			return &UnmarshalValueError{err}
 		}
 		return nil
 	}

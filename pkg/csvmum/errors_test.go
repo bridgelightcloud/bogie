@@ -23,7 +23,7 @@ func TestParseError(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	err := &ParseError{fmt.Errorf("some error")}
+	err := &UnmarshalValueError{fmt.Errorf("some error")}
 	assert.Equal("some error", err.Error())
 	assert.Equal(fmt.Errorf("some error"), err.Unwrap())
 }
