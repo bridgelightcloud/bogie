@@ -59,3 +59,7 @@ func (c *customMarshalAndUnmarshal) UnmarshalText(text []byte) error {
 func ptr[T any](v T) *T {
 	return &v
 }
+
+func nilPtr[T any]() *T {
+	return nil
+}

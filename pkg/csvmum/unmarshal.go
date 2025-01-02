@@ -63,21 +63,18 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 			continue
 		}
 
-		f := nsv.Field(j)
+		field := nsv.Field(j)
 
-		if m, ok := f.Addr().Interface().(encoding.TextUnmarshaler); ok {
+		if m, ok := field.Addr().Interface().(encoding.TextUnmarshaler); ok {
 			if err := m.UnmarshalText([]byte(line[i])); err != nil {
 				return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)
 			}
 			continue
 		}
 
-		v, err := parseValue(f, line[i])
-		if err != nil {
+		if err := parseValue(line[i], field); err != nil {
 			return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)
 		}
-
-		f.Set(v)
 	}
 
 	setRecordValue(record, nsv)

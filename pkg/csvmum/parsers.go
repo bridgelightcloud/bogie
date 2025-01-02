@@ -1,126 +1,115 @@
 package csvmum
 
 import (
-	"fmt"
+	"math/bits"
 	"reflect"
 	"strconv"
 )
 
-type parser func(reflect.Value, string) (reflect.Value, error)
-type parsers map[reflect.Kind]parser
+func parseString(value string, field reflect.Value) error {
+	field.SetString(reflect.ValueOf(value).String())
 
-var defaultParsers parsers
-
-func parseString(_ reflect.Value, value string) (reflect.Value, error) {
-	return reflect.ValueOf(value), nil
+	return nil
 }
 
-func parseInt(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseInt(value, 10, 64)
-	return reflect.ValueOf(int(i)), err
+func parseIntFactory(size int) parser {
+	return func(value string, field reflect.Value) error {
+		i, err := strconv.ParseInt(value, 10, size)
+
+		if err != nil {
+			return err
+		}
+
+		field.SetInt(i)
+
+		return nil
+	}
 }
 
-func parseInt8(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseInt(value, 10, 8)
-	return reflect.ValueOf(int8(i)), err
+func parseUintFactory(size int) parser {
+	return func(value string, field reflect.Value) error {
+		i, err := strconv.ParseUint(value, 10, size)
+
+		if err != nil {
+			return err
+		}
+
+		field.SetUint(i)
+
+		return nil
+	}
 }
 
-func parseInt16(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseInt(value, 10, 16)
-	return reflect.ValueOf(int16(i)), err
+func parseFloatFactory(size int) parser {
+	return func(value string, field reflect.Value) error {
+		f, err := strconv.ParseFloat(value, size)
+
+		if err != nil {
+			return err
+		}
+
+		field.SetFloat(f)
+
+		return nil
+	}
 }
 
-func parseInt32(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseInt(value, 10, 32)
-	return reflect.ValueOf(int32(i)), err
-}
-
-func parseInt64(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseInt(value, 10, 64)
-	return reflect.ValueOf(i), err
-}
-
-func parseUint(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseUint(value, 10, 64)
-	return reflect.ValueOf(uint(i)), err
-}
-
-func parseUint8(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseUint(value, 10, 8)
-	return reflect.ValueOf(uint8(i)), err
-}
-
-func parseUint16(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseUint(value, 10, 16)
-	return reflect.ValueOf(uint16(i)), err
-}
-
-func parseUint32(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseUint(value, 10, 32)
-	return reflect.ValueOf(uint32(i)), err
-}
-
-func parseUint64(_ reflect.Value, value string) (reflect.Value, error) {
-	i, err := strconv.ParseUint(value, 10, 64)
-	return reflect.ValueOf(i), err
-}
-
-func parseFloat32(_ reflect.Value, value string) (reflect.Value, error) {
-	f, err := strconv.ParseFloat(value, 32)
-	return reflect.ValueOf(float32(f)), err
-}
-
-func parseFloat64(_ reflect.Value, value string) (reflect.Value, error) {
-	f, err := strconv.ParseFloat(value, 64)
-	return reflect.ValueOf(f), err
-}
-
-func parseBool(_ reflect.Value, value string) (reflect.Value, error) {
+func parseBool(value string, field reflect.Value) error {
 	b, err := strconv.ParseBool(value)
-	return reflect.ValueOf(b), err
+
+	if err == nil {
+		field.SetBool(b)
+	}
+
+	return err
 }
 
-func parsePointer(field reflect.Value, value string) (reflect.Value, error) {
+func parsePointer(value string, field reflect.Value) error {
 	if value == "" {
-		return reflect.New(field.Type()).Elem(), nil
+		return nil
 	}
 
 	if field.IsNil() {
 		field.Set(reflect.New(field.Type().Elem()))
 	}
 
-	v, err := parseValue(field.Elem(), value)
-	if err != nil {
-		return reflect.Value{}, err
-	}
+	err := parseValue(value, field.Elem())
 
-	newValue := reflect.New(v.Type()).Elem()
-	newValue.Set(v)
-	return newValue.Addr(), nil
+	return err
 }
 
-func parseValue(field reflect.Value, value string) (reflect.Value, error) {
-	if p, ok := defaultParsers[field.Kind()]; ok {
-		return p(field, value)
+func parseValue(value string, field reflect.Value) error {
+	kind := field.Kind()
+	if p, ok := defaultParsers[kind]; ok {
+		err := p(value, field)
+		if err != nil {
+			return &ParseError{err}
+		}
+		return nil
 	}
-	return reflect.Value{}, fmt.Errorf("unsupported type %s", field.Kind())
+
+	return &UnsupportedTypeError{kind}
 }
+
+type parser func(string, reflect.Value) error
+
+var defaultParsers map[reflect.Kind]parser
 
 func init() {
-	defaultParsers = parsers{
+	defaultParsers = map[reflect.Kind]parser{
 		reflect.String:  parseString,
-		reflect.Int:     parseInt,
-		reflect.Int8:    parseInt8,
-		reflect.Int16:   parseInt16,
-		reflect.Int32:   parseInt32,
-		reflect.Int64:   parseInt64,
-		reflect.Uint:    parseUint,
-		reflect.Uint8:   parseUint8,
-		reflect.Uint16:  parseUint16,
-		reflect.Uint32:  parseUint32,
-		reflect.Uint64:  parseUint64,
-		reflect.Float32: parseFloat32,
-		reflect.Float64: parseFloat64,
+		reflect.Int:     parseIntFactory(bits.UintSize),
+		reflect.Int8:    parseIntFactory(8),
+		reflect.Int16:   parseIntFactory(16),
+		reflect.Int32:   parseIntFactory(32),
+		reflect.Int64:   parseIntFactory(64),
+		reflect.Uint:    parseUintFactory(bits.UintSize),
+		reflect.Uint8:   parseUintFactory(8),
+		reflect.Uint16:  parseUintFactory(16),
+		reflect.Uint32:  parseUintFactory(32),
+		reflect.Uint64:  parseUintFactory(64),
+		reflect.Float32: parseFloatFactory(32),
+		reflect.Float64: parseFloatFactory(64),
 		reflect.Bool:    parseBool,
 		reflect.Pointer: parsePointer,
 	}

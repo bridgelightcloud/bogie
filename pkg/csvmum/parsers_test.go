@@ -2,241 +2,91 @@ package csvmum
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParsers(t *testing.T) {
+// import (
+// 	"reflect"
+// 	"testing"
+
+// 	"github.com/stretchr/testify/assert"
+// )
+
+func TestParseValue(t *testing.T) {
 	t.Parallel()
 
-	t.Run("parseString", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
+	tt := map[string]struct {
+		zero     any
+		value    string
+		expected any
+		err      any
+	}{
+		"string":             {"", "string", "string", nil},
+		"int":                {0, "27", 27, nil},
+		"intParseErr":        {0, "twenty-seven", 0, ptr[*ParseError](nil)},
+		"intOverflow":        {0, "9223372036854775808", 0, ptr[*strconv.NumError](nil)},
+		"int8":               {int8(0), "27", int8(27), nil},
+		"int8ParseErr":       {int8(0), "twenty-seven", int8(0), ptr[*ParseError](nil)},
+		"int8Overflow":       {int8(0), "128", int8(0), ptr[*strconv.NumError](nil)},
+		"int16":              {int16(0), "27", int16(27), nil},
+		"int16ParseErr":      {int16(0), "twenty-seven", int16(0), ptr[*ParseError](nil)},
+		"int16Overflow":      {int16(0), "32768", int16(0), ptr[*strconv.NumError](nil)},
+		"int32":              {int32(0), "27", int32(27), nil},
+		"int32ParseErr":      {int32(0), "twenty-seven", int32(0), ptr[*ParseError](nil)},
+		"int32Overflow":      {int32(0), "2147483648", int32(0), ptr[*strconv.NumError](nil)},
+		"int64":              {int64(0), "27", int64(27), nil},
+		"int64ParseErr":      {int64(0), "twenty-seven", int64(0), ptr[*ParseError](nil)},
+		"int64Overflow":      {int64(0), "9223372036854775808", int64(0), ptr[*strconv.NumError](nil)},
+		"uint":               {uint(0), "27", uint(27), nil},
+		"uintParseErr":       {uint(0), "twenty-seven", uint(0), ptr[*ParseError](nil)},
+		"uintOverflow":       {uint(0), "18446744073709551616", uint(0), ptr[*strconv.NumError](nil)},
+		"uint8":              {uint8(0), "27", uint8(27), nil},
+		"uint8ParseErr":      {uint8(0), "twenty-seven", uint8(0), ptr[*ParseError](nil)},
+		"uint8Overflow":      {uint8(0), "256", uint8(0), ptr[*strconv.NumError](nil)},
+		"uint16":             {uint16(0), "27", uint16(27), nil},
+		"uint16ParseErr":     {uint16(0), "twenty-seven", uint16(0), ptr[*ParseError](nil)},
+		"uint16Overflow":     {uint16(0), "65536", uint16(0), ptr[*strconv.NumError](nil)},
+		"uint32":             {uint32(0), "27", uint32(27), nil},
+		"uint32ParseErr":     {uint32(0), "twenty-seven", uint32(0), ptr[*ParseError](nil)},
+		"uint32Overflow":     {uint32(0), "4294967296", uint32(0), ptr[*strconv.NumError](nil)},
+		"uint64":             {uint64(0), "27", uint64(27), nil},
+		"uint64ParseErr":     {uint64(0), "twenty-seven", uint64(0), ptr[*ParseError](nil)},
+		"uint64Overflow":     {uint64(0), "18446744073709551616", uint64(0), ptr[*strconv.NumError](nil)},
+		"float32":            {float32(0), "27.27", float32(27.27), nil},
+		"float32ParseErr":    {float32(0), "twenty-seven", float32(0), ptr[*ParseError](nil)},
+		"float32Overflow":    {float32(0), "1e39", float32(0), ptr[*strconv.NumError](nil)},
+		"float64":            {float64(0), "27.27", float64(27.27), nil},
+		"float64ParseErr":    {float64(0), "twenty-seven", float64(0), ptr[*ParseError](nil)},
+		"float64Overflow":    {float64(0), "1e309", float64(0), ptr[*strconv.NumError](nil)},
+		"bool":               {false, "true", true, nil},
+		"boolParseErr":       {false, "twenty-seven", false, ptr[*strconv.NumError](nil)},
+		"boolEmptyErr":       {false, " ", false, ptr[*strconv.NumError](nil)},
+		"pointer":            {ptr(0), "27", ptr(27), nil},
+		"pointer empty":      {ptr(0), "", nilPtr[int](), nil},
+		"pointer to pointer": {ptr(ptr(0)), "27", ptr(ptr(27)), nil},
+		"invalid":            {struct{}{}, "27", struct{}{}, ptr[*UnsupportedTypeError](nil)},
+	}
 
-		var tc string = "string"
-		field := reflect.Value{}
-		value := "string"
-		v, err := parseString(field, value)
+	for name, tc := range tt {
+		tc := tc
 
-		assert.Nil(err, "%w", err)
-		assert.Equal(tc, v.String())
-	})
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			assert := assert.New(t)
 
-	t.Run("parseInt", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
+			field := reflect.New(reflect.TypeOf(tc.zero)).Elem()
+			err := parseValue(tc.value, field)
 
-		var tc int = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseInt(field, value)
+			if tc.err != nil {
+				assert.ErrorAs(err, tc.err)
+			} else {
+				assert.NoError(err)
+			}
 
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseInt8", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc int8 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseInt8(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseInt16", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc int16 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseInt16(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("praseInt32", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc int32 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseInt32(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseInt64", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc int64 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseInt64(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseUint", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc uint = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseUint(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseUint8", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc uint8 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseUint8(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseUint16", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc uint16 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseUint16(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseUint32", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc uint32 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseUint32(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseUint64", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc uint64 = 1
-		field := reflect.Value{}
-		value := "1"
-		v, err := parseUint64(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseFloat32", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc float32 = 1.1
-		field := reflect.Value{}
-		value := "1.1"
-		v, err := parseFloat32(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseFloat64", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		var tc float64 = 1.1
-		field := reflect.Value{}
-		value := "1.1"
-		v, err := parseFloat64(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Interface())
-	})
-
-	t.Run("parseBool", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		field := reflect.Value{}
-		value := "true"
-		v, err := parseBool(field, value)
-
-		assert.Nil(err)
-		assert.True(v.Bool())
-	})
-
-	t.Run("parsePointer", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		tc := 1
-		field := reflect.ValueOf(ptr(tc))
-		value := "1"
-		v, err := parsePointer(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Elem().Interface())
-	})
-
-	t.Run("parseInvalidPointer", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		tc := 1
-		field := reflect.ValueOf(ptr(tc))
-		value := "seven"
-		_, err := parsePointer(field, value)
-
-		assert.Equal(err.Error(), "strconv.ParseInt: parsing \"seven\": invalid syntax")
-	})
-
-	t.Run("invalidType", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		field := reflect.Value{}
-		value := "1"
-		_, err := parseValue(field, value)
-
-		assert.Equal(err.Error(), "unsupported type invalid")
-	})
-
-	t.Run("parsePointerToPointer", func(t *testing.T) {
-		t.Parallel()
-		assert := assert.New(t)
-
-		tc := 1
-		field := reflect.ValueOf(ptr(ptr(tc)))
-		value := "1"
-		v, err := parsePointer(field, value)
-
-		assert.Nil(err)
-		assert.Equal(tc, v.Elem().Elem().Interface())
-	})
+			assert.Equal(tc.expected, field.Interface())
+		})
+	}
 }
