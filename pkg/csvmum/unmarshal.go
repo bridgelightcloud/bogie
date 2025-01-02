@@ -72,7 +72,7 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 			continue
 		}
 
-		if err := parseValue(line[i], field); err != nil {
+		if err := unmarshalValue(line[i], field); err != nil {
 			return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)
 		}
 	}

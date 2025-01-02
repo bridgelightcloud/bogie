@@ -44,7 +44,7 @@ func (m *CSVMarshaler[T]) Marshal(record T) error {
 	for _, fi := range m.fieldList {
 		field := v.Field(fi)
 
-		f, err := formatValue(field)
+		f, err := marshalValue(field)
 		if err != nil {
 			return fmt.Errorf("cannot marshal field %d: %w", fi, err)
 		}

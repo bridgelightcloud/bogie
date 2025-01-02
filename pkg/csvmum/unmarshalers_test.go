@@ -8,14 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// import (
-// 	"reflect"
-// 	"testing"
-
-// 	"github.com/stretchr/testify/assert"
-// )
-
-func TestParseValue(t *testing.T) {
+func TestUnmarshalValue(t *testing.T) {
 	t.Parallel()
 
 	tt := map[string]struct {
@@ -78,7 +71,7 @@ func TestParseValue(t *testing.T) {
 			assert := assert.New(t)
 
 			field := reflect.New(reflect.TypeOf(tc.zero)).Elem()
-			err := parseValue(tc.value, field)
+			err := unmarshalValue(tc.value, field)
 
 			if tc.err != nil {
 				assert.ErrorAs(err, tc.err)

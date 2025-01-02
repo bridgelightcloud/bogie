@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFormatValue(t *testing.T) {
+func TestMarshalValue(t *testing.T) {
 	t.Parallel()
 
 	tt := map[string]struct {
@@ -44,7 +44,7 @@ func TestFormatValue(t *testing.T) {
 			t.Parallel()
 			assert := assert.New(t)
 
-			v, err := formatValue(reflect.ValueOf(tc.field))
+			v, err := marshalValue(reflect.ValueOf(tc.field))
 
 			if tc.err != nil {
 				assert.EqualError(err, tc.err.Error())
