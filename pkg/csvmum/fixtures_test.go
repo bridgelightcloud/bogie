@@ -55,3 +55,11 @@ func (c *customMarshalAndUnmarshal) UnmarshalText(text []byte) error {
 	c.One = string(text[1 : len(text)-1])
 	return nil
 }
+
+func ptr[T any](v T) *T {
+	return &v
+}
+
+func nilPtr[T any]() *T {
+	return nil
+}

@@ -1,12 +1,10 @@
 package csvmum
 
 import (
-	"encoding"
 	"encoding/csv"
 	"fmt"
 	"io"
 	"reflect"
-	"strconv"
 )
 
 type CSVMarshaler[T any] struct {
@@ -41,29 +39,16 @@ func NewCSVMarshaler[T any](w *csv.Writer) (*CSVMarshaler[T], error) {
 
 func (m *CSVMarshaler[T]) Marshal(record T) error {
 	v := reflect.ValueOf(record)
-	row := make([]string, len(m.fieldList))
+	row := []string{}
 
-	for ci, fi := range m.fieldList {
-		f := v.Field(fi)
-		if cm, ok := f.Interface().(encoding.TextMarshaler); ok {
-			b, err := cm.MarshalText()
-			if err != nil {
-				return fmt.Errorf("cannot marshal: %w", err)
-			}
-			row[ci] = string(b)
-			continue
-		}
+	for _, fi := range m.fieldList {
+		field := v.Field(fi)
 
-		switch f.Kind() {
-		case reflect.String:
-			row[ci] = fmt.Sprintf("%s", f.String())
-		case reflect.Int:
-			row[ci] = fmt.Sprintf("%d", f.Int())
-		case reflect.Bool:
-			row[ci] = fmt.Sprintf("%t", f.Bool())
-		case reflect.Float64:
-			row[ci] = fmt.Sprintf("%s", strconv.FormatFloat(f.Float(), 'f', -1, 64))
+		f, err := marshalValue(field)
+		if err != nil {
+			return fmt.Errorf("cannot marshal field %d: %w", fi, err)
 		}
+		row = append(row, f)
 	}
 
 	if err := m.writer.Write(row); err != nil {
