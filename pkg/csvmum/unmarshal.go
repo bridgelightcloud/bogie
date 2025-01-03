@@ -2,7 +2,6 @@ package csvmum
 
 import (
 	"encoding/csv"
-	"fmt"
 	"io"
 	"reflect"
 )
@@ -23,7 +22,7 @@ func NewCSVUnmarshaler[T any](r *csv.Reader) (*CSVUnmarshaler[T], error) {
 	var t T
 	fields, err := buildFieldMap(reflect.TypeOf(t))
 	if err != nil {
-		return um, fmt.Errorf("cannot unmarshal: %w", err)
+		return um, &UnmarshalError{Err: err}
 	}
 
 	headers, err := um.reader.Read()
@@ -31,7 +30,7 @@ func NewCSVUnmarshaler[T any](r *csv.Reader) (*CSVUnmarshaler[T], error) {
 		return um, err
 	}
 	if err != nil {
-		return um, fmt.Errorf("cannot unmarshal: %w", err)
+		return um, &UnmarshalError{Err: err}
 	}
 
 	um.fieldList = make([]int, len(headers))
@@ -52,7 +51,7 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 		return err
 	}
 	if err != nil {
-		return fmt.Errorf("cannot unmarshal: %w", err)
+		return &UnmarshalError{Err: err}
 	}
 
 	nsv := newSettableValue(record)
@@ -65,7 +64,11 @@ func (um *CSVUnmarshaler[T]) Unmarshal(record *T) error {
 		field := nsv.Field(j)
 
 		if err := unmarshalValue(line[i], field); err != nil {
-			return fmt.Errorf("cannot unmarshal column %d, field %d: %w", i, j, err)
+			return &UnmarshalError{
+				Err:         err,
+				FieldIndex:  &i,
+				ColumnIndex: &j,
+			}
 		}
 	}
 

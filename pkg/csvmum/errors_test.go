@@ -2,7 +2,6 @@ package csvmum
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,16 +13,29 @@ func TestUnsupportedTypeError(t *testing.T) {
 
 	err := &UnsupportedTypeError{}
 	assert.Equal("unsupported type: invalid", err.Error())
-
-	err = &UnsupportedTypeError{reflect.Float32}
-	assert.Equal("unsupported type: float32", err.Error())
 }
 
-func TestParseError(t *testing.T) {
+func TestUnmarshalError(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	err := &UnmarshalValueError{fmt.Errorf("some error")}
+	err := &UnmarshalError{Err: fmt.Errorf("some error")}
+	assert.Equal("csv unmarshal: some error", err.Error())
+	assert.Equal(fmt.Errorf("some error"), err.Unwrap())
+
+	err = &UnmarshalError{
+		Err:         fmt.Errorf("some error"),
+		FieldIndex:  ptr(1),
+		ColumnIndex: ptr(2),
+	}
+	assert.Equal("csv unmarshal: some error (field index: 1, column index: 2)", err.Error())
+}
+
+func TestMarshalError(t *testing.T) {
+	t.Parallel()
+	assert := assert.New(t)
+
+	err := &MarshalError{Err: fmt.Errorf("some error")}
 	assert.Equal("some error", err.Error())
 	assert.Equal(fmt.Errorf("some error"), err.Unwrap())
 }
